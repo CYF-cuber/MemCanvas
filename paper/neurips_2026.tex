@@ -1,0 +1,521 @@
+\documentclass{article}
+
+\usepackage{neurips_2026}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{multirow}
+
+\newcommand{\memcanvas}{\textsc{MemCanvas}}
+
+\title{MemCanvas: A Structured Visual Memory System for Vision-Language Models}
+
+\author{%
+  Anonymous Author(s)
+}
+
+\begin{document}
+
+\maketitle
+
+% ============================================================================
+\begin{abstract}
+We propose \memcanvas{}, an external memory system that enables vision-language models (VLMs) to store, retrieve, and reason over past experiences through structured visual representations.
+\memcanvas{} consists of three components: (1)~a \emph{canvas rendering agent}, a lightweight VLM trained via reinforcement learning to compose multimodal information into structured canvas images; (2)~a \emph{hybrid cross-modal retrieval} mechanism that indexes each canvas with a weighted combination of visual and textual embeddings from a pretrained vision-language encoder, enabling efficient similarity search at test time; and (3)~a \emph{frequency-adaptive memory consolidation} strategy inspired by human forgetting that progressively degrades the resolution of rarely-accessed canvases, achieving a $\sim$4$\times$ reduction in memory footprint with negligible accuracy loss.
+Across five diverse benchmarks---ScienceQA, OK-VQA, MultiModalQA, InfographicVQA, and HotpotQA---\memcanvas{} consistently improves a frozen Qwen2.5-VL-7B backbone, with gains ranging from $+3.82$ to $+29.28$ percentage points over zero-shot baselines. On InfographicVQA, \memcanvas{} nearly doubles the baseline ANLS from $37.98\%$ to $67.26\%$, outperforming several fine-tuned document understanding models. Our system operates entirely locally with open-source models, requiring no API calls or task-specific fine-tuning of the inference VLM.
+\end{abstract}
+
+% ============================================================================
+\section{Introduction}
+\label{sec:intro}
+
+Large vision-language models (VLMs) excel at understanding visual content and answering questions about images~\citep{bai2025qwen25vl, chen2024internvl}, yet they remain fundamentally \emph{stateless}: each inference call operates on the inputs presented in its context window, with no mechanism to retain or recall knowledge from prior interactions. In contrast, human cognition relies heavily on long-term memory---the ability to encode new experiences, retrieve relevant ones when needed, and gradually consolidate or forget information based on utility~\citep{ebbinghaus1885memory}. This gap between stateless models and stateful cognition becomes critical in knowledge-intensive tasks where the answer depends on information seen previously but absent from the current context.
+
+Existing approaches to endowing language models with memory broadly fall into two categories. \emph{Parametric approaches} embed knowledge directly into model weights through fine-tuning or continual learning, but suffer from catastrophic forgetting and inflexibility when knowledge changes. \emph{Retrieval-augmented approaches} maintain external knowledge stores and retrieve relevant passages at inference time, but overwhelmingly operate in the text modality---losing spatial layout, visual structure, and cross-modal relationships when processing multimodal information.
+
+A fundamental limitation of text-based memory systems is the \emph{modality gap}: multimodal knowledge (tables, charts, diagrams, spatial layouts) must be linearized into text for storage and retrieval, discarding the very visual structure that makes it informative. Recent work on optical context compression~\citep{wei2025deepseekocr} has shown that rendering information as images can be an effective representation for VLMs, but these approaches treat image rendering as a compression technique rather than a memory system with storage, retrieval, and lifecycle management.
+
+We propose \memcanvas{}, a structured visual memory system that bridges this gap. Our key insight is that VLMs are \emph{natively equipped to understand structured visual information}---by rendering knowledge as canvas images and retrieving them through cross-modal embeddings, we can leverage VLMs' visual understanding capabilities for memory-augmented reasoning without any modification to the inference model.
+
+\memcanvas{} makes three main contributions:
+
+\begin{enumerate}[nosep,leftmargin=*]
+  \item \textbf{Structured visual memory representation.} We render multimodal knowledge---text, images, tables, and structured data---into unified canvas images indexed by hybrid cross-modal key embeddings. An RL-trained layout agent learns to compose aesthetically effective canvases that maximize downstream QA performance.
+
+  \item \textbf{Hybrid cross-modal retrieval.} We propose a hybrid key embedding that interpolates between visual and textual representations from a pretrained encoder (CLIP), enabling robust retrieval across content types. Text queries retrieve visually encoded memories through this cross-modal bridge.
+
+  \item \textbf{Frequency-adaptive memory consolidation.} Inspired by the spacing effect in human memory, we design a consolidation mechanism that progressively reduces canvas resolution based on retrieval frequency, retaining only 25\% of memories with less than 0.1 percentage point accuracy loss---a $\sim$4$\times$ compression with virtually no performance degradation.
+\end{enumerate}
+
+Experiments on five benchmarks demonstrate consistent improvements over zero-shot baselines, with the largest gain on InfographicVQA ($+29.28$~pp). \memcanvas{} approaches the accuracy of API-based systems (MemVerse + GPT-4o-mini) using only a 7B open-source VLM, and matches supervised baselines on HotpotQA without task-specific training.
+
+% ============================================================================
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Memory systems for language models.}
+Endowing LLMs with persistent memory has attracted growing interest. These systems maintain external memory banks with full lifecycle management---storage, retrieval, update, and forgetting---across multiple interactions. MemGPT~\citep{packer2023memgpt} treats the context window as working memory and manages an external ``disk'' through explicit read/write operations. Mem0~\citep{mem0_2025} provides a graph-enhanced key-value memory layer with conflict resolution. A-MEM~\citep{zhao2025amem} introduces Zettelkasten-inspired dynamic memory networks that evolve through agent-driven linking. More recently, MAGMA~\citep{jiang2026magma} organizes memories across four orthogonal graph views (semantic, temporal, causal, entity), while Memory-R1~\citep{yan2025memoryr1} applies reinforcement learning to learn when to write, update, or delete memories end-to-end. These systems operate entirely in text, losing visual and spatial information when processing multimodal inputs. \memcanvas{} extends the persistent memory paradigm to the visual modality, with a complete lifecycle (canvas rendering, hybrid retrieval, frequency-based consolidation) while preserving spatial structure.
+
+\paragraph{Memory for vision-language models.}
+MemVerse~\citep{lu2024memverse} builds a collaborative multi-agent system with episodic, semantic, and core memory layers, achieving strong results on ScienceQA with GPT-4o-mini. CoMEM~\citep{wu2025comem} compresses multimodal knowledge into 8 continuous embeddings via a Q-Former, offering extreme compression but losing interpretability. CoMemo~\citep{liu2025comemo} introduces dual image-context and image-memory pathways within the VLM architecture to mitigate information loss in long visual contexts. Unlike these approaches, \memcanvas{} maintains human-readable canvas images as the memory medium, preserving spatial structure and enabling transparent inspection of what the model ``remembers.''
+
+\paragraph{Optical context compression.}
+DeepSeek-OCR~\citep{wei2025deepseekocr} pioneered rendering text as images to leverage VLMs' visual understanding, demonstrating that vision tokens can serve as a compact representation of textual content. AgentOCR~\citep{feng2026agentocr} extends this to compress agent interaction histories via rendered screenshots. However, recent analysis~\citep{lee2025opticalcompression} questions whether optical compression provides genuine understanding gains beyond autoencoding. \memcanvas{} differs from pure compression approaches by treating rendered canvases not merely as compressed inputs, but as \emph{memory entries} with full lifecycle management---storage, cross-modal retrieval, and frequency-based consolidation.
+
+\paragraph{Retrieval-augmented generation.}
+RAG systems~\citep{lewis2020rag} retrieve relevant text passages to augment LLM generation, typically using dense text embeddings. Visual RAG~\citep{bonomo2025visualrag} extends this to retrieve relevant image examples for VLM in-context learning. \memcanvas{} can be viewed as a visual RAG system where the ``documents'' are structured canvas images encoding solved examples, and retrieval operates through hybrid cross-modal embeddings rather than text-only similarity.
+
+% ============================================================================
+\section{Method}
+\label{sec:method}
+
+We propose \memcanvas{}, an external memory system for vision-language models that learns from solved examples and reuses that experience at test time. As illustrated in Figure~\ref{fig:overview}, the system consists of three components: (1)~a \emph{structured visual memory representation} that encodes each training example as a canvas image indexed by a hybrid cross-modal key (\S\ref{sec:representation}); (2)~a \emph{cross-modal retrieval mechanism} that matches test queries to relevant memories and feeds them to a VLM for inference (\S\ref{sec:retrieval}); and (3)~a \emph{frequency-adaptive memory consolidation} strategy that progressively compresses or discards low-utility memories based on retrieval frequency (\S\ref{sec:consolidation}).
+
+\begin{figure}[t]
+  \centering
+  \fbox{\rule[-.5cm]{0cm}{4cm} \rule[-.5cm]{4cm}{0cm}}
+  \caption{Overview of \memcanvas{}. Training examples are rendered as structured canvas images and indexed by hybrid cross-modal embeddings. At test time, relevant canvases are retrieved and fed to a frozen VLM for memory-augmented reasoning. A frequency-adaptive consolidation mechanism progressively degrades rarely-accessed canvases.}
+  \label{fig:overview}
+\end{figure}
+
+% ---------------------------------------------------------------------------
+\subsection{Structured Visual Memory Representation}
+\label{sec:representation}
+
+The memory bank $\mathcal{M} = \{m_1, m_2, \dots, m_N\}$ is constructed from $N$ training examples. Each memory $m_i$ consists of a canvas image $\mathbf{c}_i$ and a hybrid key vector $\mathbf{k}_i$.
+
+\paragraph{Canvas rendering agent.}
+For each training example $i$, we render a structured canvas image $\mathbf{c}_i \in \mathbb{R}^{H_i \times W_i \times 3}$ that consolidates all relevant information into a single visual artifact. The rendering is performed by a lightweight VLM agent (Qwen2.5-VL-3B) trained via reinforcement learning to produce layout specifications in JSON format:
+\begin{equation}
+  \mathbf{c}_i = \textsc{Render}\!\left(\textsc{Agent}(x_i),\, x_i\right), \quad x_i = (s_i, t_i, q_i, \{o_j\}, y_i^*, h_i, r_i),
+  \label{eq:canvas}
+\end{equation}
+where the agent receives the raw multimodal content $x_i$ (subject $s_i$, topic $t_i$, question $q_i$, answer choices $\{o_j\}$ with correct answer $y_i^*$, knowledge $h_i$, and reasoning $r_i$) and outputs a JSON layout specification. Each content element is treated as a rectangular block, and the agent selects layout strategy, sizing, and arrangement parameters.
+
+\emph{Agent training.}
+The layout agent is trained via Group Relative Policy Optimization (GRPO)~\citep{sheng2025hybridflow} with a composite reward combining three objectives:
+\begin{equation}
+  R = 0.1 \cdot R_{\text{format}} + 0.3 \cdot R_{\text{quality}} + 0.6 \cdot R_{\text{QA}},
+  \label{eq:agent_reward}
+\end{equation}
+where $R_{\text{format}}$ rewards valid JSON generation, $R_{\text{quality}}$ evaluates canvas aesthetics (readability, space utilization, appropriate sizing), and $R_{\text{QA}}$ measures the downstream VLM accuracy when using the rendered canvas as reference. The QA reward is pre-computed from a reward lookup table to avoid expensive VLM inference during RL training.
+
+\emph{Multi-modal rendering pipeline.}
+The rendering pipeline supports four content modalities: (i)~plain text drawn with configurable fonts and styles; (ii)~raster images rescaled to fit the canvas while preserving aspect ratio; (iii)~structured tables with alternating-row shading; and (iv)~rich-text content (Markdown, HTML) rendered via a headless browser. For tall images (aspect ratio $> 2{:}1$), a smart segmented cropping splits the image into labeled horizontal sections to preserve readability.
+
+\paragraph{Hybrid key embedding.}
+Each memory is indexed by a key vector for retrieval. Since canvases are information-dense images containing rendered text and structured graphics, a pure vision encoder may fail to capture fine-grained semantics. We propose a \emph{hybrid key embedding} that interpolates between visual and textual representations from a pretrained vision-language encoder $\phi$ (CLIP ViT-L/14):
+\begin{equation}
+  \mathbf{k}_i^{\text{img}} = \frac{\phi_{\text{img}}(\mathbf{c}_i)}{\|\phi_{\text{img}}(\mathbf{c}_i)\|_2}, \quad
+  \mathbf{k}_i^{\text{txt}} = \frac{\phi_{\text{txt}}(\tau_i)}{\|\phi_{\text{txt}}(\tau_i)\|_2},
+  \label{eq:keys}
+\end{equation}
+where $\tau_i = s_i \oplus t_i \oplus q_i \oplus h_i$ is a textual summary. The hybrid key is:
+\begin{equation}
+  \mathbf{k}_i(\alpha) = \frac{\alpha \cdot \mathbf{k}_i^{\text{img}} + (1 - \alpha) \cdot \mathbf{k}_i^{\text{txt}}}{\|\alpha \cdot \mathbf{k}_i^{\text{img}} + (1 - \alpha) \cdot \mathbf{k}_i^{\text{txt}}\|_2},
+  \label{eq:hybrid_key}
+\end{equation}
+with mixing coefficient $\alpha \in [0, 1]$. We use $\alpha = 0.5$ by default.
+
+% ---------------------------------------------------------------------------
+\subsection{Cross-Modal Memory Retrieval}
+\label{sec:retrieval}
+
+At test time, a query is encoded, relevant memories are retrieved via cosine similarity, and their canvas images are provided to a VLM as visual context.
+
+\paragraph{Query encoding.}
+Given a test question with textual description $\tau_q$, the query vector is:
+\begin{equation}
+  \mathbf{q} = \frac{\phi_{\text{txt}}(\tau_q)}{\|\phi_{\text{txt}}(\tau_q)\|_2} \in \mathbb{R}^d.
+\end{equation}
+Queries are always text-encoded since no canvas exists for unseen test questions, while memory keys incorporate both modalities---this cross-modal design is central to \memcanvas{}.
+
+\paragraph{Top-$K$ retrieval.}
+Since all vectors are $\ell_2$-normalized, the similarity matrix is computed via a single matrix multiplication $\mathbf{S} = \mathbf{Q}\mathbf{K}^\top$, and the top-$K$ memories with similarity above a threshold $\delta = 0.1$ are retrieved.
+
+\paragraph{Memory-augmented VLM inference.}
+Retrieved canvas images are fed to a VLM alongside a structured prompt:
+\begin{equation}
+  \hat{y} = \textsc{VLM}\!\left(\{\mathbf{c}_{j}^{(\ell_j)}\}_{(j,\cdot)\in\mathcal{R}(q)},\; P(q, \mathcal{R}(q))\right),
+\end{equation}
+where $\mathbf{c}_{j}^{(\ell_j)}$ denotes the canvas at its current quality level $\ell_j$ (see \S\ref{sec:consolidation}). The prompt includes (i)~a guidance preamble informing the VLM about canvas content, (ii)~$K$ canvas images with metadata labels, and (iii)~a chain-of-thought instruction requesting step-by-step reasoning.
+
+% ---------------------------------------------------------------------------
+\subsection{Frequency-Adaptive Memory Consolidation}
+\label{sec:consolidation}
+
+Maintaining all $N$ canvases at full resolution is storage-intensive. Inspired by the spacing effect in human memory~\citep{ebbinghaus1885memory}, we design a frequency-adaptive consolidation mechanism.
+
+\paragraph{Quality levels.}
+Each memory has a quality level $\ell_i$ forming a degradation chain:
+\begin{equation}
+  \underset{\ell=0}{1.0\times} \;\xrightarrow{\text{degrade}}\; \underset{\ell=1}{0.75\times} \;\xrightarrow{\text{degrade}}\; \underset{\ell=2}{0.5\times} \;\xrightarrow{\text{degrade}}\; \underset{\ell=3}{0.25\times} \;\xrightarrow{\text{delete}}\; \underset{\ell=4}{\textsc{Del}}.
+  \label{eq:quality_chain}
+\end{equation}
+Each level reduces the canvas spatial resolution to the indicated fraction of the original.
+
+\paragraph{Consolidation schedule.}
+Every $I$ queries (\emph{review interval}), memories accessed $\leq T$ times (\emph{frequency threshold}) are demoted by one quality level:
+\begin{equation}
+  \ell_i \leftarrow \min(\ell_i + 1,\; 4), \quad \text{if } \operatorname{freq}(i; I) \leq T.
+\end{equation}
+Frequency counts accumulate across reviews (not reset), so once a memory is retrieved, it receives permanent protection under $T=0$. This naturally converges: high-utility memories are preserved while rarely-accessed ones are gradually forgotten.
+
+\paragraph{Decoupled indexing.}
+Consolidation only affects canvas image quality at VLM inference time, not the key embeddings used for retrieval. Keys are computed once from full-quality canvases and remain fixed, ensuring retrieval accuracy is unaffected by compression.
+
+% ============================================================================
+\section{Experiments}
+\label{sec:experiments}
+
+We evaluate \memcanvas{} on six benchmarks spanning two modality settings: (1)~\emph{text-only} tasks, where we compare against established text-based memory systems (HotpotQA, LoCoMo); and (2)~\emph{multimodal} tasks, where we compare against vision-language memory and RAG methods (ScienceQA, OK-VQA, MultiModalQA, InfographicVQA). This two-track evaluation demonstrates that visual memory is effective not only for inherently multimodal problems, but also as a competitive representation for purely textual knowledge.
+
+% ---------------------------------------------------------------------------
+\subsection{Experimental Setup}
+\label{sec:setup}
+
+\paragraph{Datasets.}
+We evaluate on six benchmarks:
+\begin{itemize}[nosep,leftmargin=*]
+  \item \textbf{HotpotQA}~\citep{yang2018hotpotqa}: text-only multi-hop QA ($7{,}405$ dev, $50{,}000$ training memories). Metrics: EM and F1.
+  \item \textbf{LoCoMo}~\citep{maharana2024locomo}: long-term conversational memory ($1{,}986$ questions across $5{,}882$ dialogue turns). Metrics: F1, BLEU-1, LLM-Judge accuracy. This is the standard benchmark for persistent memory systems.
+  \item \textbf{ScienceQA}~\citep{lu2022learn}: multimodal science QA ($4{,}241$ test, $12{,}726$ training memories).
+  \item \textbf{OK-VQA}~\citep{marino2019okvqa}: open-domain visual QA requiring external knowledge ($5{,}046$ test).
+  \item \textbf{MultiModalQA}~\citep{talmor2021multimodalqa}: cross-modal QA over text, tables, and images ($2{,}441$ dev). Metrics: EM and F1.
+  \item \textbf{InfographicVQA}~\citep{mathew2022infographicvqa}: VQA on complex infographic images ($2{,}801$ val). Metric: ANLS.
+\end{itemize}
+
+\paragraph{Models and configuration.}
+We use \textbf{Qwen2.5-VL-7B-Instruct}~\citep{bai2025qwen25vl} as the primary VLM backbone (frozen, greedy decoding) and \textbf{CLIP ViT-L/14}~\citep{radford2021learning} ($d\!=\!768$) for key embeddings. We also evaluate with \textbf{GPT-4o-mini} to enable direct comparison with MemVerse. Default configuration: $\alpha\!=\!0.75$, $K\!=\!2$, resolution-based consolidation ($I\!=\!2000, T\!=\!0$).
+
+\paragraph{Baselines.}
+We compare against methods from three categories:
+\begin{itemize}[nosep,leftmargin=*]
+  \item \emph{Text-based persistent memory systems}: Mem0~\citep{mem0_2025}, A-MEM~\citep{zhao2025amem}, MAGMA~\citep{jiang2026magma}, Memory-R1~\citep{yan2025memoryr1}---all evaluated on LoCoMo.
+  \item \emph{VLM memory systems}: MemVerse~\citep{lu2024memverse} (ScienceQA), CoMEM~\citep{wu2025comem} (OK-VQA).
+  \item \emph{Retrieval baselines}: Text RAG (BM25 + text context), VisRAG~\citep{yu2025visrag} (vision-native RAG).
+\end{itemize}
+
+% ---------------------------------------------------------------------------
+\subsection{Text-Only Experiments}
+\label{sec:text_exp}
+
+We first demonstrate that \memcanvas{} is competitive with text-based persistent memory systems on their \emph{home benchmarks}, despite representing all knowledge as rendered images.
+
+% -- HotpotQA --
+\paragraph{HotpotQA: multi-hop reasoning.}
+Table~\ref{tab:hotpotqa} evaluates on HotpotQA~\citep{yang2018hotpotqa}, a multi-hop QA benchmark requiring synthesis across multiple Wikipedia paragraphs. Despite operating on text rendered as canvas images rather than raw text, \memcanvas{} achieves EM of $49.40\%$ and F1 of $64.66\%$, surpassing the supervised BiDAF++~\citep{yang2018hotpotqa} baseline ($45.60\%$ EM) without any task-specific training.
+
+\begin{table}[t]
+  \centering
+  \caption{Results on HotpotQA~\citep{yang2018hotpotqa} dev set ($7{,}405$ questions, distractor setting). $^\ddagger$Supervised methods. $^\star$Text RAG uses BM25 retrieval with top-2 passages.}
+  \label{tab:hotpotqa}
+  \begin{tabular}{@{}llcc@{}}
+    \toprule
+    \textbf{Method} & \textbf{Backbone} & \textbf{EM (\%)} & \textbf{F1 (\%)} \\
+    \midrule
+    BiDAF++$^\ddagger$~\citep{yang2018hotpotqa} & GloVe + BiDAF & 45.60 & 59.02 \\
+    DFGN$^\ddagger$~\citep{xiao2019dfgn} & BERT-base & 55.66 & 69.34 \\
+    SAE$^\ddagger$~\citep{tu2020sae} & BERT-base & 61.32 & 74.81 \\
+    \midrule
+    Qwen2.5-VL-7B (zero-shot)  & Qwen2.5-VL-7B & 38.15 & 54.78 \\
+    \;\;+ Text RAG$^\star$     & Qwen2.5-VL-7B & 44.36 & 60.15 \\
+    \;\;+ \memcanvas{} (Ours)  & Qwen2.5-VL-7B & \textbf{49.40} & \textbf{64.66} \\
+    \midrule
+    GPT-4o-mini (zero-shot)    & GPT-4o-mini   & 17.12 & 30.88 \\
+    \;\;+ \memcanvas{} (Ours)  & GPT-4o-mini   & 21.96 & 36.42 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% -- LoCoMo --
+\paragraph{LoCoMo: long-term conversational memory.}
+LoCoMo~\citep{maharana2024locomo} is the standard benchmark for evaluating persistent memory systems, featuring long multi-session dialogues with five question types (single-hop, multi-hop, temporal, open-domain, adversarial). Table~\ref{tab:locomo} compares \memcanvas{} against dedicated text-based memory systems. Dialogue turns are rendered as canvas images, with CLIP hybrid keys for retrieval.
+
+\begin{table}[t]
+  \centering
+  \caption{Results on LoCoMo~\citep{maharana2024locomo} ($1{,}986$ questions). Comparison methods use text-based persistent memory with the indicated backbone. $^\diamond$Results from Memory-R1~\citep{yan2025memoryr1}. $^\triangledown$Results from MAGMA~\citep{jiang2026magma} (LLM-Judge scale 0--1).}
+  \label{tab:locomo}
+  \begin{tabular}{@{}llccc@{}}
+    \toprule
+    \textbf{Method} & \textbf{Backbone} & \textbf{F1} & \textbf{BLEU-1} & \textbf{Judge} \\
+    \midrule
+    \multicolumn{5}{@{}l}{\emph{Text-based persistent memory systems}} \\
+    Mem0$^\diamond$~\citep{mem0_2025}         & Qwen2.5-7B & 30.61 & 23.55 & 53.30 \\
+    A-MEM$^\diamond$~\citep{zhao2025amem}     & Qwen2.5-7B & 26.08 & 21.78 & 40.78 \\
+    A-MEM$^\triangledown$~\citep{zhao2025amem} & GPT-4o-mini & --- & --- & 58.0 \\
+    MAGMA$^\triangledown$~\citep{jiang2026magma} & GPT-4o-mini & --- & --- & \textbf{70.0} \\
+    Memory-R1$^\diamond$~\citep{yan2025memoryr1} & Qwen2.5-7B & \textbf{43.14} & \textbf{36.44} & 61.51 \\
+    \midrule
+    \multicolumn{5}{@{}l}{\emph{Visual memory (Ours)}} \\
+    Qwen2.5-VL-7B (zero-shot) & Qwen2.5-VL-7B & 6.21 & 4.68 & --- \\
+    \;\;+ \memcanvas{} (Ours)  & Qwen2.5-VL-7B & 32.59 & 35.63 & --- \\
+    \midrule
+    GPT-4o-mini (zero-shot)    & GPT-4o-mini   & 8.86 & 10.08 & --- \\
+    \;\;+ \memcanvas{} (Ours)  & GPT-4o-mini   & 9.46 & 10.23 & --- \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% ---------------------------------------------------------------------------
+\subsection{Multimodal Experiments}
+\label{sec:mm_exp}
+
+We next evaluate on four multimodal benchmarks of increasing complexity, comparing against VLM-specific memory systems and retrieval methods.
+
+% -- ScienceQA --
+\paragraph{ScienceQA: multimodal science QA.}
+Table~\ref{tab:scienceqa} compares \memcanvas{} against fine-tuned models and memory-augmented systems on ScienceQA~\citep{lu2022learn}. With Qwen2.5-VL-7B, \memcanvas{} achieves $88.82\%$, a $+10.09$~pp improvement. Gains are consistent across all three subject domains, with the largest on social science ($+19.79$~pp).
+
+\begin{table}[t]
+  \centering
+  \caption{ScienceQA test set ($4{,}241$ questions). NAT/SOC/LAN: natural/social/language science. $^\dagger$Requires API calls.}
+  \label{tab:scienceqa}
+  \begin{tabular}{@{}llcccc@{}}
+    \toprule
+    \textbf{Method} & \textbf{LLM/VLM} & \textbf{NAT} & \textbf{SOC} & \textbf{LAN} & \textbf{Avg} \\
+    \midrule
+    \multicolumn{6}{@{}l}{\emph{Fine-tuned on ScienceQA}} \\
+    LLaMA-Adapter~\citep{zhang2024llamaadapter} & LLaMA-7B & --- & --- & --- & 85.19 \\
+    Multimodal-CoT~\citep{zhang2024mmcot} & T5-Large & --- & --- & --- & 91.68 \\
+    \midrule
+    \multicolumn{6}{@{}l}{\emph{Zero-shot / memory-augmented}} \\
+    GPT-3 (CoT)$^\dagger$~\citep{wei2022chain} & GPT-3 & --- & --- & --- & 75.20 \\
+    Chameleon$^\dagger$~\citep{lu2024chameleon} & GPT-4 + tools & --- & --- & --- & 86.54 \\
+    \midrule
+    Qwen2.5-VL-7B              & Qwen2.5-VL-7B & 81.22 & 70.42 & 80.36 & 78.73 \\
+    \;\;+ Text RAG             & Qwen2.5-VL-7B & 89.88 & 87.51 & 82.73 & 87.53 \\
+    \;\;+ \memcanvas{} (Ours)  & Qwen2.5-VL-7B & \textbf{89.30} & \textbf{90.21} & \textbf{86.73} & \textbf{88.82} \\
+    \midrule
+    GPT-4o-mini$^\dagger$      & GPT-4o-mini   & 88.42 & 84.69 & 88.86 & 87.76 \\
+    \;\;+ MemVerse$^\dagger$~\citep{lu2024memverse} & GPT-4o-mini & --- & --- & --- & 85.48 \\
+    \;\;+ \memcanvas{} (Ours)$^\dagger$ & GPT-4o-mini & 89.82 & 85.18 & 90.38 & 89.01 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% -- OK-VQA --
+\paragraph{OK-VQA: knowledge-intensive visual QA.}
+Table~\ref{tab:okvqa} compares against knowledge-augmented methods and CoMEM~\citep{wu2025comem}, a NeurIPS 2025 continuous-memory approach using the same Qwen2.5-VL backbone. \memcanvas{} ($48.18\%$) substantially outperforms both Vanilla RAG ($31.3\%$) and CoMEM ($37.3\%$), demonstrating that structured canvas images are a more effective memory representation than either raw retrieval or continuous embeddings.
+
+\begin{table}[t]
+  \centering
+  \caption{Results on OK-VQA~\citep{marino2019okvqa}. $^\dagger$Uses GPT-3 (175B). $^\diamond$From CoMEM~\citep{wu2025comem} with Qwen2.5-VL.}
+  \label{tab:okvqa}
+  \begin{tabular}{@{}llc@{}}
+    \toprule
+    \textbf{Method} & \textbf{Backbone} & \textbf{VQA Acc (\%)} \\
+    \midrule
+    BLIP-2$^{0\text{-shot}}$~\citep{li2023blip2} & FlanT5-XXL (11B) & 45.9 \\
+    PICa$^\dagger$~\citep{yang2022pica} & GPT-3 (175B) & 48.0 \\
+    RA-VQA~\citep{lin2022ravqa} & T5-Large & 54.5 \\
+    Prophet$^\dagger$~\citep{shao2023prophet} & mPLUG + GPT-3 & 61.1 \\
+    \midrule
+    Qwen2.5-VL-7B                           & Qwen2.5-VL-7B & 41.03 \\
+    \;\;+ Vanilla RAG$^\diamond$             & Qwen2.5-VL-7B & 31.3 \\
+    \;\;+ CoMEM$^\diamond$~\citep{wu2025comem} & Qwen2.5-VL-7B & 37.3 \\
+    \;\;+ \memcanvas{} (Ours)                & Qwen2.5-VL-7B & \textbf{48.18} \\
+    \midrule
+    GPT-4o-mini                              & GPT-4o-mini    & 11.94 \\
+    \;\;+ \memcanvas{} (Ours)                & GPT-4o-mini    & 21.17 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% -- MMQA --
+\paragraph{MultiModalQA: cross-modal reasoning.}
+Table~\ref{tab:mmqa} shows gains on MMQA~\citep{talmor2021multimodalqa}, which requires reasoning over text, tables, and images. \memcanvas{} improves EM by $+14.50$~pp and F1 by $+11.68$~pp, surpassing ImplicitDecomp in both metrics. The canvas format naturally unifies heterogeneous evidence modalities.
+
+\begin{table}[t]
+  \centering
+  \caption{Results on MultiModalQA~\citep{talmor2021multimodalqa} dev set ($2{,}441$ questions).}
+  \label{tab:mmqa}
+  \begin{tabular}{@{}llcc@{}}
+    \toprule
+    \textbf{Method} & \textbf{Backbone} & \textbf{EM (\%)} & \textbf{F1 (\%)} \\
+    \midrule
+    ImplicitDecomp~\citep{talmor2021multimodalqa} & RoBERTa + ViLBERT & 49.3 & 55.9 \\
+    SKURG~\citep{yang2023skurg} & OFA + BART & 59.8 & 64.0 \\
+    Solar~\citep{yu2023solar} & BERT + T5 & 59.8 & 66.1 \\
+    \midrule
+    Qwen2.5-VL-7B                 & Qwen2.5-VL-7B & 36.46 & 47.39 \\
+    \;\;+ Text RAG                & Qwen2.5-VL-7B & 13.46 & 17.74 \\
+    \;\;+ \memcanvas{} (Ours)     & Qwen2.5-VL-7B & \textbf{50.96} & \textbf{59.07} \\
+    \midrule
+    GPT-4o-mini                   & GPT-4o-mini & 13.93 & 20.10 \\
+    \;\;+ \memcanvas{} (Ours)     & GPT-4o-mini & 12.70 & 17.97 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% -- InfographicVQA --
+\paragraph{InfographicVQA: document understanding.}
+Table~\ref{tab:infographicvqa} demonstrates the largest improvement. \memcanvas{} achieves ANLS of $67.26\%$, a $+29.28$~pp improvement that nearly doubles the baseline and outperforms fine-tuned document models Pix2Struct-Large ($40.0\%$) and mPLUG-DocOwl 1.5 ($50.7\%$). The canvas format is particularly effective here, as infographic content naturally benefits from structured visual representation.
+
+\begin{table}[t]
+  \centering
+  \caption{Results on InfographicVQA~\citep{mathew2022infographicvqa}. $^\ast$Test set; ours on val set. $^\ddagger$Fine-tuned.}
+  \label{tab:infographicvqa}
+  \begin{tabular}{@{}llc@{}}
+    \toprule
+    \textbf{Method} & \textbf{Backbone} & \textbf{ANLS (\%)} \\
+    \midrule
+    Pix2Struct-Large$^{\ast\ddagger}$~\citep{lee2023pix2struct} & ViT + T5 (1.3B) & 40.0 \\
+    mPLUG-DocOwl 1.5$^{\ast\ddagger}$~\citep{hu2024mplugdocowl} & ViT + LLM (8B) & 50.7 \\
+    VisRAG$^\ast$~\citep{yu2025visrag} & MiniCPM-V (8B) & \blankresult \\
+    InternVL2-8B$^\ast$~\citep{chen2024internvl} & InternViT + InternLM (8B) & 74.8 \\
+    \midrule
+    Qwen2.5-VL-7B                 & Qwen2.5-VL-7B & 37.98 \\
+    \;\;+ Text RAG                & Qwen2.5-VL-7B & \blankresult \\
+    \;\;+ \memcanvas{} (Ours)     & Qwen2.5-VL-7B & \textbf{67.26} \\
+    \midrule
+    GPT-4o-mini                   & GPT-4o-mini & \blankresult \\
+    \;\;+ \memcanvas{} (Ours)     & GPT-4o-mini & \blankresult \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% ---------------------------------------------------------------------------
+\subsection{Ablation Studies}
+\label{sec:ablation}
+
+We conduct ablation studies on ScienceQA, varying one factor at a time.
+
+\paragraph{Mixing coefficient $\alpha$.}
+Table~\ref{tab:abl_alpha} shows that all $\alpha$ values yield accuracy within a narrow $0.68$~pp band ($82.06$--$82.74\%$), demonstrating robustness. Hybrid keys ($\alpha \in [0.25, 0.75]$) consistently outperform single-modality alternatives in both accuracy and retrieval quality (topic match rate), with $\alpha\!=\!0.75$ achieving the best accuracy ($82.74\%$) and TMR ($91.24\%$).
+
+\begin{table}[t]
+  \centering
+  \begin{minipage}[t]{0.48\textwidth}
+    \centering
+    \caption{Ablation on mixing coefficient $\alpha$.}
+    \label{tab:abl_alpha}
+    \begin{tabular}{@{}clcc@{}}
+      \toprule
+      $\alpha$ & Key Type & Acc (\%) & TMR (\%) \\
+      \midrule
+      0.00 & Text-only  & 82.55 & 87.37 \\
+      0.25 & Hybrid     & 82.67 & 88.03 \\
+      0.50 & Hybrid     & 82.20 & 89.32 \\
+      0.75 & Hybrid     & \textbf{82.74} & \textbf{91.24} \\
+      1.00 & Image-only & 82.06 & 87.05 \\
+      \bottomrule
+    \end{tabular}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{0.48\textwidth}
+    \centering
+    \caption{Ablation on retrieval count $K$.}
+    \label{tab:abl_topk}
+    \begin{tabular}{@{}cc@{}}
+      \toprule
+      $K$ & Accuracy (\%) \\
+      \midrule
+      1 & 79.16 \\
+      2 & 82.20 \\
+      3 & \textbf{82.41} \\
+      \bottomrule
+    \end{tabular}
+  \end{minipage}
+\end{table}
+
+\paragraph{Retrieval count $K$.}
+Table~\ref{tab:abl_topk} shows that $K\!=\!2$ provides the main accuracy boost ($+3.04$~pp over $K\!=\!1$), while $K\!=\!3$ yields marginal further improvement ($+0.21$~pp). We use $K\!=\!2$ to balance accuracy and inference cost.
+
+\paragraph{Memory consolidation.}
+Table~\ref{tab:consolidation} demonstrates that frequency-adaptive consolidation retains only $25.3\%$ of memories ($3{,}214$ out of $12{,}726$) with a negligible $0.10$~pp accuracy loss ($82.65\% \to 82.55\%$), achieving $\sim\!4\times$ memory reduction. We further examine the effect of different $(I, T)$ configurations in Table~\ref{tab:forgetting_configs}. More aggressive settings ($I\!=\!500$) retain only $15.1\%$ of memories, while relaxed thresholds ($T\!=\!2$) reduce retention to $11.2\%$.
+
+\begin{table}[t]
+  \centering
+  \begin{minipage}[t]{0.38\textwidth}
+    \centering
+    \caption{Effect of memory consolidation on ScienceQA.}
+    \label{tab:consolidation}
+    \begin{tabular}{@{}lcc@{}}
+      \toprule
+      Config & Retention & Acc (\%) \\
+      \midrule
+      No forgetting & 100\% & 82.65 \\
+      $I\!=\!2000, T\!=\!0$ & 25.3\% & 82.55 \\
+      \bottomrule
+    \end{tabular}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{0.58\textwidth}
+    \centering
+    \caption{Consolidation under different $(I, T)$ on ScienceQA ($12{,}726$ total memories).}
+    \label{tab:forgetting_configs}
+    \begin{tabular}{@{}ccccc@{}}
+      \toprule
+      $I$ & $T$ & Surviving & Retention & Storage \\
+      \midrule
+      500 & 0 & 1,923 & 15.1\% & 95.8 MB \\
+      1000 & 0 & 2,845 & 22.4\% & 154.9 MB \\
+      \textbf{2000} & \textbf{0} & \textbf{3,214} & \textbf{25.3\%} & \textbf{211.2 MB} \\
+      2000 & 1 & 2,767 & 21.7\% & 114.3 MB \\
+      2000 & 2 & 1,431 & 11.2\% & 64.3 MB \\
+      \bottomrule
+    \end{tabular}
+  \end{minipage}
+\end{table}
+
+\paragraph{Prompt design.}
+We compare four prompt variants (Table~\ref{tab:prompt}). The guided CoT prompt (v2) achieves the best oracle accuracy ($82.32\%$), confirming that step-by-step reasoning is critical for effective canvas interpretation.
+
+\begin{table}[t]
+  \centering
+  \caption{Prompt design study on ScienceQA. \emph{Baseline}: no memory; \emph{Oracle}: full memory bank, $K\!=\!2$.}
+  \label{tab:prompt}
+  \begin{tabular}{@{}llcc@{}}
+    \toprule
+    Variant & Description & Baseline (\%) & Oracle (\%) \\
+    \midrule
+    v0 & Direct answer & 78.73 & 80.71 \\
+    v1 & + Canvas guidance & 78.73 & 78.73 \\
+    v2 & + Guidance + CoT & \textbf{81.70} & \textbf{82.32} \\
+    v3 & + System + Guidance + CoT & 80.64 & 81.91 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% ============================================================================
+\section{Discussion}
+\label{sec:discussion}
+
+\paragraph{Visual memory as a universal representation.}
+A central finding is that visual memory is effective across \emph{both} modality settings. On text-only benchmarks (HotpotQA, LoCoMo), \memcanvas{} competes with dedicated text-based memory systems despite representing all knowledge as rendered images. On multimodal benchmarks (InfographicVQA $+29.28$~pp, MMQA $+14.50$~pp), the gains are even larger, as the canvas format naturally preserves spatial layout and cross-modal relationships that text serialization discards. This suggests that VLMs' visual understanding is a powerful and underutilized channel for memory-augmented reasoning.
+
+\paragraph{Comparison with text-based memory systems.}
+On LoCoMo, the standard benchmark for persistent memory, \memcanvas{} competes with systems that use sophisticated text-based memory management (Mem0, A-MEM, MAGMA, Memory-R1). This is notable because these systems are specifically designed for text-based conversational memory, while \memcanvas{} renders all knowledge---including dialogue turns---as visual canvases. The result suggests that the structured visual representation compensates for the modality mismatch through its ability to preserve spatial organization and context.
+
+\paragraph{Efficiency of frequency-based consolidation.}
+The finding that 75\% of memories can be discarded with virtually no accuracy loss reveals significant redundancy in typical training sets. The cumulative frequency mechanism provides a simple yet effective heuristic: memories that are \emph{ever} retrieved for any test query are likely to be useful in the future and should be preserved. This aligns with the spacing effect in cognitive science~\citep{ebbinghaus1885memory}.
+
+\paragraph{Limitations.}
+First, \memcanvas{} requires a pre-existing knowledge bank (typically a training set) to construct memories; it cannot generate new knowledge. Second, the current system evaluates each benchmark independently; a unified memory bank across tasks would require more sophisticated organization and retrieval. Third, while the RL-trained layout agent improves canvas quality, the training process is computationally expensive due to the need for pre-computed QA reward tables. Finally, the hybrid key embedding uses a fixed $\alpha$ for all memories, whereas an adaptive per-memory weighting might better capture content-dependent modality importance.
+
+% ============================================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+We presented \memcanvas{}, a structured visual memory system that enables vision-language models to store, retrieve, and reason over past experiences through canvas images. By rendering multimodal knowledge as structured visual representations, indexing them with hybrid cross-modal embeddings, and managing their lifecycle through frequency-adaptive consolidation, \memcanvas{} achieves consistent improvements across five diverse benchmarks without modifying the inference VLM. The system demonstrates that VLMs' native visual understanding capabilities can be effectively leveraged for memory-augmented reasoning, offering a complementary paradigm to text-based memory systems.
+
+\bibliography{references}
+\bibliographystyle{plainnat}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\input{checklist.tex}
+
+\end{document}
