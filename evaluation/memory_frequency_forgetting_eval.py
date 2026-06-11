@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-频次自适应遗忘实验 (Frequency-Based Adaptive Forgetting Experiment)
+Frequency-adaptive forgetting experiment (Frequency-Based Adaptive Forgetting Experiment)
 
 Core idea: Instead of fixed storage budgets, use memory retrieval frequency
 to determine which memories to compress/forget. After every N test samples
@@ -912,86 +912,86 @@ def generate_report(
     results = phase1_data["results"]
     conditions = phase1_data["conditions"]
 
-    lines.append("# 频次自适应遗忘实验报告")
+    lines.append("# Frequency-adaptive forgetting experimenttext")
     lines.append("")
-    lines.append(f"生成时间: {time.strftime('%Y-%m-%d %H:%M:%S')}")
-    lines.append("")
-
-    # ---- 1. 实验目的 ----
-    lines.append("## 1. 实验目的")
-    lines.append("")
-    lines.append("本实验探索一种**频次自适应遗忘机制**：不设定固定的存储预算，"
-                 "而是根据记忆在实际使用中的**检索频次**来决定哪些记忆应该被压缩或遗忘。"
-                 "核心假设是：频繁被检索的记忆是重要的，应保持高质量；"
-                 "很少被检索的记忆可以被逐步压缩以节省存储空间。")
-    lines.append("")
-    lines.append("与固定预算策略不同，频次自适应方法让记忆库的大小自然收敛到一个稳定值，"
-                 "这个稳定值反映了任务实际需要的记忆量。")
+    lines.append(f"text: {time.strftime('%Y-%m-%d %H:%M:%S')}")
     lines.append("")
 
-    # ---- 2. 实验方法 ----
-    lines.append("## 2. 实验方法")
+    # ---- 1. text ----
+    lines.append("## 1. text")
+    lines.append("")
+    lines.append("text**text**：text，"
+                 "text**text**text。"
+                 "text：text，textquality；"
+                 "text。")
+    lines.append("")
+    lines.append("text，text，"
+                 "text。")
     lines.append("")
 
-    lines.append("### 2.1 压缩质量层级")
+    # ---- 2. text ----
+    lines.append("## 2. text")
     lines.append("")
-    lines.append("采用与固定预算实验相同的渐进压缩方案，包含5个质量层级：")
+
+    lines.append("### 2.1 textqualitytext")
     lines.append("")
-    lines.append("| 层级 | 格式 | 相对大小 | 说明 |")
+    lines.append("text，text5textqualitytext：")
+    lines.append("")
+    lines.append("| text | text | text | text |")
     lines.append("|------|------|----------|------|")
-    lines.append("| 0 | PNG | 100% | 原始无损质量 |")
-    lines.append("| 1 | WebP-85 | 57.95% | WebP有损压缩，质量参数85 |")
-    lines.append("| 2 | AVIF-50 | 37.09% | AVIF有损压缩，质量参数50 |")
-    lines.append("| 3 | AVIF-50@0.5x | 0.518% | AVIF-50 + 缩放至50%尺寸 |")
-    lines.append("| 4 | 已删除 | 0% | 记忆被完全删除 |")
+    lines.append("| 0 | PNG | 100% | textquality |")
+    lines.append("| 1 | WebP-85 | 57.95% | WebPtext，qualitytext85 |")
+    lines.append("| 2 | AVIF-50 | 37.09% | AVIFtext，qualitytext50 |")
+    lines.append("| 3 | AVIF-50@0.5x | 0.518% | AVIF-50 + text50%text |")
+    lines.append("| 4 | text | 0% | text |")
     lines.append("")
 
-    lines.append("### 2.2 频次自适应遗忘策略")
+    lines.append("### 2.2 textforgetting strategy")
     lines.append("")
-    lines.append("策略流程如下：")
+    lines.append("text：")
     lines.append("")
-    lines.append("1. **初始化**：所有记忆以PNG（最高质量）存储")
-    lines.append("2. **使用阶段**：按顺序处理测试样本，每个样本通过CLIP相似度检索最相关的top-2记忆")
-    lines.append("3. **频次统计**：记录每条记忆被检索的次数")
-    lines.append("4. **定期审查**：每处理N个测试样本（审查间隔），执行一次遗忘审查：")
-    lines.append("   - 对每条存活的记忆，检查自上次审查以来的检索次数")
-    lines.append("   - 如果检索次数 ≤ 频次阈值，将该记忆**降级一个质量层级**"
-                 "（例如 PNG→WebP-85→AVIF-50→AVIF-50@0.5x→删除）")
-    lines.append("   - 重置所有记忆的检索计数器")
-    lines.append("5. **循环**：重复步骤2-4，直到完成所有epoch")
+    lines.append("1. **text**：textwith memorytextPNG（textquality）text")
+    lines.append("2. **text**：text，textCLIPtexttop-2text")
+    lines.append("3. **text**：textmemoriestext")
+    lines.append("4. **text**：textNtext（text），text：")
+    lines.append("   - textsurvivingtext，text")
+    lines.append("   - text ≤ text，text**textqualitytext**"
+                 "（text PNG→WebP-85→AVIF-50→AVIF-50@0.5x→text）")
+    lines.append("   - textwith memorytext")
+    lines.append("5. **text**：text2-4，textepoch")
     lines.append("")
-    lines.append("关键特性：")
-    lines.append("- **无固定预算**：存储大小由使用模式自然决定")
-    lines.append("- **渐进遗忘**：每次审查最多降级一个层级，给予记忆多次'被发现'的机会")
-    lines.append("- **窗口计数**：每次审查后重置计数器，反映最近的使用情况")
+    lines.append("text：")
+    lines.append("- **text**：text")
+    lines.append("- **text**：text，text'text'text")
+    lines.append("- **text**：text，text")
     lines.append("")
 
-    lines.append("### 2.3 实验参数")
+    lines.append("### 2.3 text")
     lines.append("")
-    lines.append(f"- **记忆数量**: {n}")
-    lines.append(f"- **原始存储大小**: {total_mb:.1f} MB")
-    lines.append(f"- **测试样本数**: {n_test}")
-    lines.append(f"- **模拟轮数(Epochs)**: {n_epochs}（共 {n_test * n_epochs:,} 步）")
-    lines.append(f"- **检索方式**: CLIP-Large文本-图像相似度, top-2检索")
+    lines.append(f"- **text**: {n}")
+    lines.append(f"- **text**: {total_mb:.1f} MB")
+    lines.append(f"- **text**: {n_test}")
+    lines.append(f"- **text(Epochs)**: {n_epochs}（text {n_test * n_epochs:,} text）")
+    lines.append(f"- **text**: CLIP-Largetext-text, top-2text")
     lines.append("")
-    lines.append("**实验条件**（审查间隔 × 频次阈值）：")
+    lines.append("**text**（text × text）：")
     lines.append("")
-    lines.append("| 条件编号 | 审查间隔(N) | 频次阈值(T) | 含义 |")
+    lines.append("| text | text(N) | text(T) | text |")
     lines.append("|----------|-------------|-------------|------|")
     for i, cond in enumerate(conditions):
         interval = int(cond.split("_i")[1].split("_")[0])
         thresh = int(cond.split("_t")[1])
-        meaning = f"每{interval}样本审查，检索次数≤{thresh}则降级"
+        meaning = f"text{interval}text，text≤{thresh}text"
         lines.append(f"| {i+1} | {interval} | {thresh} | {meaning} |")
     lines.append("")
 
-    # ---- 3. Phase 1 结果 ----
-    lines.append("## 3. Phase 1: 模拟结果")
+    # ---- 3. Phase 1 text ----
+    lines.append("## 3. Phase 1: text")
     lines.append("")
 
-    lines.append("### 3.1 存储收敛")
+    lines.append("### 3.1 text")
     lines.append("")
-    lines.append("| 条件 | 最终存储(MB) | 占原始比例 | 存活记忆数 | 审查次数 |")
+    lines.append("| text | text(MB) | text | survivingtext | text |")
     lines.append("|------|-------------|-----------|-----------|---------|")
     for cond in conditions:
         res = results[cond]
@@ -1005,9 +1005,9 @@ def generate_report(
         )
     lines.append("")
 
-    lines.append("### 3.2 质量分布（最终状态）")
+    lines.append("### 3.2 qualitytext（text）")
     lines.append("")
-    lines.append("| 条件 | PNG | WebP-85 | AVIF-50 | AVIF-50@0.5x | 已删除 |")
+    lines.append("| text | PNG | WebP-85 | AVIF-50 | AVIF-50@0.5x | text |")
     lines.append("|------|----:|--------:|--------:|-------------:|-------:|")
     for cond in conditions:
         res = results[cond]
@@ -1024,28 +1024,28 @@ def generate_report(
         )
     lines.append("")
 
-    lines.append("### 3.3 收敛过程分析")
+    lines.append("### 3.3 text")
     lines.append("")
-    lines.append("从存储收敛曲线（storage_convergence.png）可以观察到：")
+    lines.append("text（storage_convergence.png）text：")
     lines.append("")
-    lines.append("- **审查间隔越小，收敛越快**：间隔500的条件在前2000步内就接近稳态")
-    lines.append("- **频次阈值越高，收敛到的存储越小**：阈值越高意味着更多记忆被视为'低频'而被压缩")
-    lines.append("- **所有条件最终都会收敛**：说明频次自适应机制能自然找到一个稳定点")
+    lines.append("- **text，text**：text500text2000text")
+    lines.append("- **text，text**：text'text'text")
+    lines.append("- **text**：text")
     lines.append("")
 
-    # ---- 4. Phase 2 结果 ----
+    # ---- 4. Phase 2 text ----
     if phase2_data:
-        lines.append("## 4. Phase 2: VLM准确率评估")
+        lines.append("## 4. Phase 2: VLMaccuracytext")
         lines.append("")
-        lines.append(f"- **基线准确率**（无记忆）: {phase2_data['baseline']['accuracy']:.2f}%")
-        lines.append(f"- **Oracle准确率**（完整PNG记忆）: {phase2_data['oracle']['accuracy']:.2f}%")
+        lines.append(f"- **baselineaccuracy**（no memory）: {phase2_data['baseline']['accuracy']:.2f}%")
+        lines.append(f"- **Oracleaccuracy**（textPNGtext）: {phase2_data['oracle']['accuracy']:.2f}%")
         lines.append("")
 
         cond_acc = phase2_data["condition_accuracies"]
 
-        lines.append("### 4.1 准确率结果")
+        lines.append("### 4.1 accuracytext")
         lines.append("")
-        lines.append("| 条件 | 准确率 | 最终存储(MB) | 占原始比例 | 存活记忆 | 准确率变化 |")
+        lines.append("| text | accuracy | text(MB) | text | survivingtext | accuracytext |")
         lines.append("|------|--------|-------------|-----------|---------|-----------|")
         for cond in conditions:
             res = results[cond]
@@ -1069,43 +1069,43 @@ def generate_report(
             )
         lines.append("")
 
-        lines.append("### 4.2 分析")
+        lines.append("### 4.2 text")
         lines.append("")
-        lines.append("从准确率与存储散点图（accuracy_vs_storage.png）可以分析存储-准确率权衡：")
+        lines.append("textaccuracytext（accuracy_vs_storage.png）text-accuracytext：")
         lines.append("")
-        lines.append("- 频次自适应机制能在大幅减少存储的同时保持接近Oracle的准确率")
-        lines.append("- 这是因为被压缩/删除的大多是不常被检索的记忆，对实际推理影响有限")
-        lines.append("- 最佳参数组合在存储节省和准确率保持之间取得了良好平衡")
+        lines.append("- textOracletextaccuracy")
+        lines.append("- text/text，text")
+        lines.append("- textaccuracytext")
         lines.append("")
 
         dedup = phase2_data["dedup_stats"]
-        lines.append("### 4.3 去重统计")
+        lines.append("### 4.3 text")
         lines.append("")
-        lines.append(f"- 总条件数: {dedup['total_conditions']}")
-        lines.append(f"- 唯一VLM评估: {dedup['unique_groups']}")
-        lines.append(f"- 节省的冗余评估: {dedup['total_conditions'] - dedup['unique_groups']}")
+        lines.append(f"- text: {dedup['total_conditions']}")
+        lines.append(f"- textVLMtext: {dedup['unique_groups']}")
+        lines.append(f"- text: {dedup['total_conditions'] - dedup['unique_groups']}")
         lines.append("")
     else:
-        lines.append("## 4. Phase 2: 未运行")
+        lines.append("## 4. Phase 2: text")
         lines.append("")
-        lines.append("使用不带 `--phase1-only` 的命令运行以获取准确率数据。")
+        lines.append("text `--phase1-only` textaccuracytext。")
         lines.append("")
 
-    # ---- 5. 结论 ----
-    lines.append("## 5. 结论")
+    # ---- 5. text ----
+    lines.append("## 5. text")
     lines.append("")
-    lines.append("1. **频次自适应遗忘机制可行**：记忆库大小能自然收敛到稳定值")
-    lines.append("2. **参数敏感性**：审查间隔和频次阈值的选择影响收敛速度和最终存储大小")
-    lines.append("3. **核心优势**：无需手动设定存储预算，系统自动发现合适的记忆规模")
+    lines.append("1. **text**：text")
+    lines.append("2. **text**：text")
+    lines.append("3. **text**：text，text")
     lines.append("")
 
-    lines.append("## 6. 生成的文件")
+    lines.append("## 6. text")
     lines.append("")
-    lines.append("- `storage_convergence.png` — 存储随时间收敛的曲线")
-    lines.append("- `final_summary.png` — 最终存储大小和存活记忆数对比")
-    lines.append("- `quality_evolution.png` — 质量层级分布随审查步骤的变化")
-    lines.append("- `accuracy_vs_storage.png` — 准确率与收敛存储大小的关系")
-    lines.append("- `accuracy_comparison.png` — 各条件准确率对比")
+    lines.append("- `storage_convergence.png` — text")
+    lines.append("- `final_summary.png` — textsurvivingtext")
+    lines.append("- `quality_evolution.png` — qualitytext")
+    lines.append("- `accuracy_vs_storage.png` — accuracytext")
+    lines.append("- `accuracy_comparison.png` — textaccuracytext")
     lines.append("")
 
     report_text = "\n".join(lines) + "\n"

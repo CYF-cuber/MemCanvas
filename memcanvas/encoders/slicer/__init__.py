@@ -1,11 +1,11 @@
 """
 Canvas Slicer Module
 
-实现类似DeepSeek-OCR的画布切分和vision token提取逻辑。
+textDeepSeek-OCRtextvision tokentext。
 
-增强功能：
-- DeepSeek风格的CLIP Aligner投影
-- Token压缩（resampler/pooling/conv）
+text：
+- DeepSeektextCLIP Alignertext
+- Tokentext（resampler/pooling/conv）
 """
 
 from .canvas_slicer import CanvasSlicer, SliceConfig, SliceResult
@@ -28,7 +28,7 @@ __all__ = [
     'create_deepseek_style_extractor',
     # Memory Token
     'MemoryToken', 'MemoryMeta', 'MemoryTokenBuilder',
-    # CLIP Aligner (DeepSeek风格)
+    # CLIP Aligner (DeepSeektext)
     'CLIPAligner', 'TokenCompressor', 'CLIPVisionProcessor',
     'AlignerConfig', 'CompressorConfig',
     'create_deepseek_style_processor'

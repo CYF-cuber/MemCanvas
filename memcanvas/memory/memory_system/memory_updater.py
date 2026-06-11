@@ -1,12 +1,4 @@
-"""
-MemoryUpdater - 记忆更新模块
-
-提供记忆的更新和遗忘机制：
-- 重复检测
-- 记忆合并
-- 记忆遗忘
-- 记忆压缩
-"""
+"""Memory update and forgetting utilities."""
 
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Any, Literal, Tuple
@@ -22,55 +14,37 @@ from ...encoders.slicer.memory_token import MemoryMeta, MemoryToken
 
 
 class UpdateAction(Enum):
-    """更新动作"""
-    ADD = "add"           # 添加新记忆
-    UPDATE = "update"     # 更新现有记忆
-    REMAIN = "remain"     # 保持不变（重复）
-    MERGE = "merge"       # 合并记忆
+    """Action selected for an incoming memory."""
+    ADD = "add"
+    UPDATE = "update"
+    REMAIN = "remain"
+    MERGE = "merge"
 
 
 @dataclass
 class UpdateConfig:
-    """更新配置"""
-    # 重复检测相似度阈值
+    """Configuration for memory updates and forgetting."""
     duplicate_threshold: float = 0.85
-    # 相似记忆合并阈值
     merge_threshold: float = 0.7
-    # 是否自动检测重复
     auto_duplicate_check: bool = True
-    # 遗忘策略: none, time_decay, capacity, importance
     forget_strategy: str = "none"
-    # 容量限制（0表示无限制）
     capacity_limit: int = 0
-    # 时间衰减天数（超过此天数的记忆可被遗忘）
     decay_days: int = 365
-    # 重要性阈值（低于此值的记忆可被遗忘）
     importance_threshold: float = 0.3
 
 
 @dataclass
 class UpdateResult:
-    """更新结果"""
+    """Result returned after processing a memory update."""
     action: UpdateAction
     memory_id: str
-    # 如果是更新或合并，原记忆ID
     original_id: Optional[str] = None
-    # 相似度分数
     similarity: float = 0.0
-    # 消息
     message: str = ""
 
 
 class MemoryUpdater:
-    """
-    记忆更新器
-
-    负责：
-    1. 检测新记忆是否与现有记忆重复
-    2. 决定是添加、更新还是合并记忆
-    3. 执行记忆遗忘策略
-    4. 记忆压缩和整理
-    """
+    """Apply duplicate detection, merge decisions, and forgetting policies."""
 
     def __init__(
         self,
@@ -87,21 +61,10 @@ class MemoryUpdater:
         new_memory: MemoryToken,
         category: str = "default"
     ) -> UpdateResult:
-        """
-        处理新记忆
-
-        Args:
-            new_memory: 新记忆
-            category: 分类
-
-        Returns:
-            UpdateResult
-        """
+        """Process a new memory and decide whether to add, keep, update, or merge it."""
         memory_id = new_memory.meta.memory_id
 
-        # 检查是否启用重复检测
         if not self.config.auto_duplicate_check or len(self.index) == 0:
-            # 直接添加
             self.store.save(new_memory, category)
             self.index.add(memory_id, new_memory.key_embedding)
             return UpdateResult(
@@ -110,7 +73,6 @@ class MemoryUpdater:
                 message="Added new memory"
             )
 
-        # 检测重复和相似
         action, similar_id, similarity = self._detect_duplicate(
             new_memory.key_embedding
         )
@@ -125,19 +87,14 @@ class MemoryUpdater:
             )
 
         elif action == UpdateAction.UPDATE:
-            # 更新现有记忆
             return self._update_existing(new_memory, similar_id, category)
 
         elif action == UpdateAction.MERGE:
-            # 合并记忆
             return self._merge_memories(new_memory, similar_id, category)
 
         else:
-            # 添加新记忆
             self.store.save(new_memory, category)
             self.index.add(memory_id, new_memory.key_embedding)
-
-            # 检查容量限制
             self._check_capacity()
 
             return UpdateResult(
@@ -151,13 +108,7 @@ class MemoryUpdater:
         self,
         query_embedding: np.ndarray
     ) -> Tuple[UpdateAction, Optional[str], float]:
-        """
-        检测是否重复
-
-        Returns:
-            (action, similar_memory_id, similarity)
-        """
-        # 搜索最相似的记忆
+        """Return the update action implied by nearest-neighbor similarity."""
         results = self.index.search(query_embedding, top_k=1, threshold=0.0)
 
         if not results:
@@ -167,15 +118,12 @@ class MemoryUpdater:
         similarity = most_similar.score
 
         if similarity >= self.config.duplicate_threshold:
-            # 高度相似，视为重复
             return UpdateAction.REMAIN, most_similar.memory_id, similarity
 
         elif similarity >= self.config.merge_threshold:
-            # 中度相似，考虑合并
             return UpdateAction.MERGE, most_similar.memory_id, similarity
 
         else:
-            # 相似度不高，添加新记忆
             return UpdateAction.ADD, most_similar.memory_id, similarity
 
     def _update_existing(
@@ -184,12 +132,10 @@ class MemoryUpdater:
         existing_id: str,
         category: str
     ) -> UpdateResult:
-        """更新现有记忆"""
-        # 删除旧记忆
+        """Replace an existing memory with a new memory."""
         self.store.delete(existing_id)
         self.index.remove(existing_id)
 
-        # 添加新记忆
         new_id = new_memory.meta.memory_id
         self.store.save(new_memory, category)
         self.index.add(new_id, new_memory.key_embedding)
@@ -207,24 +153,20 @@ class MemoryUpdater:
         existing_id: str,
         category: str
     ) -> UpdateResult:
-        """合并记忆"""
+        """Merge a new memory into a similar existing memory."""
         existing_memory = self.store.load(existing_id)
         if existing_memory is None:
-            # 如果现有记忆不存在，直接添加
             return self.process_new_memory(new_memory, category)
 
-        # 合并tokens（简单拼接）
         merged_tokens = np.concatenate([
             existing_memory.tokens,
             new_memory.tokens
         ], axis=0)
 
-        # 合并key embedding（加权平均）
         merged_embedding = (
             existing_memory.key_embedding + new_memory.key_embedding
         ) / 2
 
-        # 合并元数据
         merged_meta = MemoryMeta(
             memory_id=f"merged_{new_memory.meta.memory_id}",
             created_at=datetime.now(),
@@ -241,7 +183,6 @@ class MemoryUpdater:
             compress_mode=new_memory.meta.compress_mode
         )
 
-        # 合并valid_mask
         merged_mask = None
         if existing_memory.valid_mask is not None and new_memory.valid_mask is not None:
             merged_mask = np.concatenate([
@@ -256,11 +197,9 @@ class MemoryUpdater:
             valid_mask=merged_mask
         )
 
-        # 删除旧记忆
         self.store.delete(existing_id)
         self.index.remove(existing_id)
 
-        # 保存合并后的记忆
         self.store.save(merged_memory, category)
         self.index.add(merged_meta.memory_id, merged_embedding)
 
@@ -272,7 +211,7 @@ class MemoryUpdater:
         )
 
     def _check_capacity(self):
-        """检查容量限制，必要时执行遗忘"""
+        """Apply the configured capacity policy if the memory store is over budget."""
         if self.config.capacity_limit <= 0:
             return
 
@@ -280,7 +219,6 @@ class MemoryUpdater:
         if current_count <= self.config.capacity_limit:
             return
 
-        # 需要遗忘一些记忆
         num_to_forget = current_count - self.config.capacity_limit
 
         if self.config.forget_strategy == "time_decay":
@@ -288,27 +226,24 @@ class MemoryUpdater:
         elif self.config.forget_strategy == "importance":
             self._forget_by_importance(num_to_forget)
         else:
-            # 默认：删除最老的
             self._forget_oldest(num_to_forget)
 
     def _forget_oldest(self, n: int):
-        """删除最老的N条记忆"""
+        """Delete the oldest memories."""
         memories_with_time = []
         for mid in self.store.list_ids():
             meta = self.store.get_meta(mid)
             if meta:
                 memories_with_time.append((mid, meta.created_at))
 
-        # 按时间排序，最老的在前
         memories_with_time.sort(key=lambda x: x[1])
 
-        # 删除最老的N条
         for mid, _ in memories_with_time[:n]:
             self.store.delete(mid)
             self.index.remove(mid)
 
     def _forget_by_time(self, n: int):
-        """按时间衰减删除记忆"""
+        """Delete memories older than the configured decay window."""
         cutoff_date = datetime.now() - timedelta(days=self.config.decay_days)
 
         deleted = 0
@@ -322,30 +257,26 @@ class MemoryUpdater:
                 self.index.remove(mid)
                 deleted += 1
 
-        # 如果还需要删除更多，删除最老的
         if deleted < n:
             self._forget_oldest(n - deleted)
 
     def _forget_by_importance(self, n: int):
-        """按重要性删除记忆（基于embedding范数作为简单的重要性指标）"""
+        """Delete memories with the lowest embedding-norm importance proxy."""
         memories_with_importance = []
         for mid in self.store.list_ids():
             vec = self.index.get_vector(mid)
             if vec is not None:
-                # 使用embedding范数作为重要性代理
                 importance = float(np.linalg.norm(vec))
                 memories_with_importance.append((mid, importance))
 
-        # 按重要性排序，最不重要的在前
         memories_with_importance.sort(key=lambda x: x[1])
 
-        # 删除最不重要的N条
         for mid, _ in memories_with_importance[:n]:
             self.store.delete(mid)
             self.index.remove(mid)
 
     def forget_memory(self, memory_id: str) -> bool:
-        """手动删除指定记忆"""
+        """Delete a memory by ID."""
         if memory_id not in self.store:
             return False
 
@@ -354,29 +285,20 @@ class MemoryUpdater:
         return True
 
     def compact(self):
-        """
-        整理和压缩记忆
-
-        - 移除无效索引
-        - 重建索引（如果使用FAISS）
-        - 清理孤立文件
-        """
-        # 同步索引和存储
+        """Synchronize the storage and index after deletes or file cleanup."""
         store_ids = set(self.store.list_ids())
         index_ids = set(self.index._id_list)
 
-        # 移除索引中不存在于存储的记录
         for mid in index_ids - store_ids:
             self.index.remove(mid)
 
-        # 为存储中存在但索引中没有的记录重建索引
         for mid in store_ids - index_ids:
             memory = self.store.load(mid)
             if memory:
                 self.index.add(mid, memory.key_embedding)
 
     def get_statistics(self) -> Dict[str, Any]:
-        """获取更新统计"""
+        """Return memory update statistics."""
         return {
             "total_memories": len(self.store),
             "index_size": len(self.index),

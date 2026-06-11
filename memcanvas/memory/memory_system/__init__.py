@@ -1,14 +1,14 @@
 """
 Memory Canvas Memory System
 
-基于 Vision Token 的多模态记忆系统，提供：
-- 记忆存储（MemoryStore）
-- 向量索引（MemoryIndex）
-- 记忆检索（MemoryRetriever）
-- 记忆管理（MemoryManager）
-- 文本查询编码（TextQueryEncoder）
+text Vision Token text，text：
+- text（MemoryStore）
+- vectortext（MemoryIndex）
+- text（MemoryRetriever）
+- text（MemoryManager）
+- text（TextQueryEncoder）
 
-设计参考 MemVerse，但使用 Vision Token 而非文本描述。
+text MemVerse，text Vision Token text。
 """
 
 from .memory_store import MemoryStore, MemoryStoreConfig

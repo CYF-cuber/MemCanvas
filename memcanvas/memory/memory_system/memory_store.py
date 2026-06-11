@@ -1,9 +1,9 @@
 """
-MemoryStore - 记忆存储模块
+MemoryStore - memory storage module
 
-提供记忆的持久化存储，支持：
-- 文件系统存储（默认）
-- 支持扩展到其他后端（Redis、MongoDB等）
+textpersistent storage，text：
+- filesystem storage（text）
+- supports extension to other backends（Redis、MongoDBtext）
 """
 
 from dataclasses import dataclass, field
@@ -17,35 +17,35 @@ from ...encoders.slicer.memory_token import MemoryMeta, MemoryToken
 
 @dataclass
 class MemoryStoreConfig:
-    """存储配置"""
-    # 存储根目录
+    """storage configuration"""
+    # storage root directory
     storage_path: str = "./memory_store"
-    # 是否压缩存储
+    # whether to compress stored data
     compress: bool = True
-    # 最大记忆数量（0表示无限制）
+    # maximum number of memories（0means unlimited）
     max_memories: int = 0
-    # 自动备份间隔（秒，0表示不备份）
+    # automatic backup interval（seconds，0means no backup）
     backup_interval: int = 0
-    # 记忆分类（用于分目录存储）
+    # textcategory（used for directory-based storage）
     categories: List[str] = field(default_factory=lambda: ["default"])
 
 
 class MemoryStore:
     """
-    记忆存储器
+    memory store
 
-    负责记忆的持久化存储和加载。
-    使用文件系统作为默认后端。
+    Responsibilitiestextpersistent storagetext。
+    uses the filesystem as the default backend。
 
-    目录结构：
+    directory structure：
     storage_path/
-    ├── index.json          # 记忆索引（ID -> 文件路径映射）
-    ├── metadata.json       # 存储元数据
-    ├── default/            # 默认分类
+    ├── index.json          # memory index（ID -> text）
+    ├── metadata.json       # text
+    ├── default/            # textcategory
     │   ├── mem_001.npz
     │   ├── mem_002.npz
     │   └── ...
-    └── category_name/      # 其他分类
+    └── category_name/      # textcategory
         └── ...
     """
 
@@ -53,26 +53,26 @@ class MemoryStore:
         self.config = config or MemoryStoreConfig()
         self.storage_path = Path(self.config.storage_path)
 
-        # 记忆索引：memory_id -> file_path
+        # memory index：memory_id -> file_path
         self._index: Dict[str, str] = {}
-        # 元数据缓存：memory_id -> MemoryMeta
+        # metadata cache：memory_id -> MemoryMeta
         self._meta_cache: Dict[str, MemoryMeta] = {}
 
         self._init_storage()
 
     def _init_storage(self):
-        """初始化存储目录"""
+        """initialize storage directory"""
         self.storage_path.mkdir(parents=True, exist_ok=True)
 
-        # 创建分类目录
+        # textcategorytext
         for category in self.config.categories:
             (self.storage_path / category).mkdir(exist_ok=True)
 
-        # 加载索引
+        # load index
         self._load_index()
 
     def _load_index(self):
-        """加载索引文件"""
+        """load indextext"""
         index_path = self.storage_path / "index.json"
         if index_path.exists():
             with open(index_path, 'r') as f:
@@ -80,7 +80,7 @@ class MemoryStore:
                 self._index = data.get("index", {})
 
     def _save_index(self):
-        """保存索引文件"""
+        """save index file"""
         index_path = self.storage_path / "index.json"
         with open(index_path, 'w') as f:
             json.dump({
@@ -96,34 +96,34 @@ class MemoryStore:
         overwrite: bool = False
     ) -> str:
         """
-        保存记忆
+        save memory
 
         Args:
-            memory: MemoryToken对象
-            category: 分类名称
-            overwrite: 是否覆盖已存在的记忆
+            memory: MemoryTokenobject
+            category: categorytext
+            overwrite: whether to overwrite an existing memory
 
         Returns:
             memory_id
         """
         memory_id = memory.meta.memory_id
 
-        # 检查是否已存在
+        # check whether it already exists
         if memory_id in self._index and not overwrite:
             raise ValueError(f"Memory {memory_id} already exists. Use overwrite=True to replace.")
 
-        # 确保分类目录存在
+        # textcategorytext
         category_path = self.storage_path / category
         category_path.mkdir(exist_ok=True)
 
-        # 生成文件路径
+        # generate file path
         file_name = f"{memory_id}.npz"
         file_path = category_path / file_name
 
-        # 保存记忆
+        # save memory
         memory.save(str(file_path))
 
-        # 更新索引
+        # text
         self._index[memory_id] = str(file_path.relative_to(self.storage_path))
         self._meta_cache[memory_id] = memory.meta
         self._save_index()
@@ -132,20 +132,20 @@ class MemoryStore:
 
     def load(self, memory_id: str) -> Optional[MemoryToken]:
         """
-        加载记忆
+        text
 
         Args:
-            memory_id: 记忆ID
+            memory_id: memory ID
 
         Returns:
-            MemoryToken或None
+            MemoryTokentextNone
         """
         if memory_id not in self._index:
             return None
 
         file_path = self.storage_path / self._index[memory_id]
         if not file_path.exists():
-            # 索引失效，清理
+            # text，text
             del self._index[memory_id]
             self._save_index()
             return None
@@ -154,13 +154,13 @@ class MemoryStore:
 
     def delete(self, memory_id: str) -> bool:
         """
-        删除记忆
+        text
 
         Args:
-            memory_id: 记忆ID
+            memory_id: memory ID
 
         Returns:
-            是否成功删除
+            text
         """
         if memory_id not in self._index:
             return False
@@ -177,18 +177,18 @@ class MemoryStore:
         return True
 
     def exists(self, memory_id: str) -> bool:
-        """检查记忆是否存在"""
+        """text"""
         return memory_id in self._index
 
     def list_ids(self, category: Optional[str] = None) -> List[str]:
         """
-        列出所有记忆ID
+        textmemory ID
 
         Args:
-            category: 可选，按分类过滤
+            category: text，textcategorytext
 
         Returns:
-            记忆ID列表
+            memory IDtext
         """
         if category is None:
             return list(self._index.keys())
@@ -199,7 +199,7 @@ class MemoryStore:
         ]
 
     def get_meta(self, memory_id: str) -> Optional[MemoryMeta]:
-        """获取记忆元数据（不加载完整数据）"""
+        """text（text）"""
         if memory_id in self._meta_cache:
             return self._meta_cache[memory_id]
 
@@ -215,14 +215,14 @@ class MemoryStore:
         batch_size: int = 10
     ) -> Iterator[List[MemoryToken]]:
         """
-        批量迭代记忆
+        text
 
         Args:
-            category: 可选分类过滤
-            batch_size: 批次大小
+            category: textcategorytext
+            batch_size: text
 
         Yields:
-            MemoryToken批次
+            MemoryTokentext
         """
         ids = self.list_ids(category)
 
@@ -237,7 +237,7 @@ class MemoryStore:
                 yield batch
 
     def get_statistics(self) -> Dict[str, Any]:
-        """获取存储统计信息"""
+        """text"""
         total_size = 0
         category_counts = {}
 
@@ -258,22 +258,22 @@ class MemoryStore:
         }
 
     def backup(self, backup_path: str):
-        """备份整个存储"""
+        """text"""
         shutil.copytree(self.storage_path, backup_path)
 
     def clear(self, category: Optional[str] = None):
         """
-        清空存储
+        text
 
         Args:
-            category: 可选，只清空指定分类
+            category: text，textcategory
         """
         if category:
             ids_to_delete = self.list_ids(category)
             for mid in ids_to_delete:
                 self.delete(mid)
         else:
-            # 清空所有
+            # text
             for mid in list(self._index.keys()):
                 self.delete(mid)
 

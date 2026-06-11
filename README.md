@@ -1,81 +1,119 @@
 # MemCanvas
 
-MemCanvas 是一个围绕“视觉记忆画布”整理后的私有代码仓库，目标是把你分散在多个工作区里的核心代码、研究脚本和历史版本放到一个便于 GitHub 管理的地方。
+MemCanvas is a training-free visual memory framework for lifelong multimodal agents. It stores past multimodal interactions as structured canvas images, retrieves relevant canvases with hybrid visual-textual keys, and injects them as visual memory context for downstream vision-language models.
 
-这个仓库现在分成三层：
+This repository is organized as an open-source release of the paper code. Historical experiment snapshots are kept only as references; the public entry points are the `memcanvas/`, `scripts/`, `configs/`, `docs/`, `data/classifications/`, and `reports/` directories.
 
-1. `memcanvas/`
-当前整理后的核心包，放画布渲染、记忆系统、编码器和布局相关代码。
+## Features
 
-2. `evaluation/` `training/` `scripts/`
-当前研究脚本区，保留了实验入口和训练脚本，但其中一部分仍然带有你本机历史路径假设，适合作为内部研究仓管理，不适合作为“开箱即用”的公共仓承诺。
+- **Visual memory construction**: render text, images, charts, and tables into readable canvas memories.
+- **Hybrid retrieval**: combine CLIP image and text embeddings with a tunable coefficient `alpha`.
+- **Memory bank storage**: maintain canvas files and JSONL metadata with access counts and quality states.
+- **Progressive visual forgetting**: degrade rarely accessed memories by resolution before deletion.
+- **Dataset taxonomy**: release the topic and modality-hop labels used for merged evaluation.
+- **Evaluation prompts**: provide the prompts used for ScienceQA, OK-VQA, MMQA, and HotpotQA-style evaluation.
 
-3. `versions/`
-从旧工作区抽取的代码快照，只保留源码，不带大数据、模型、输出结果，用于回溯版本演进。
-
-## 目录说明
+## Repository layout
 
 ```text
 MemCanvas/
-├── memcanvas/                    # 当前主代码
-├── evaluation/                   # 当前评测脚本
-├── training/                     # 当前训练脚本
-├── scripts/                      # 辅助脚本
-├── paper/                        # 论文源码与图
-├── versions/                     # 历史代码快照
-│   ├── v1_workspace_memcanvas0402/
-│   └── v2_workspace_codex/
-├── docs/                         # 中文管理文档
-├── configs/                      # 预留配置目录
-├── data/                         # 预留数据目录
-├── requirements-core.txt         # 核心依赖
-├── requirements-research.txt     # 研究脚本依赖
-└── pyproject.toml                # 基础包元信息
+├── memcanvas/                 # Core package
+│   ├── canvas.py              # SmartCanvas layout and rendering
+│   ├── bank.py                # MemoryEntry and MemoryBank
+│   ├── retrieval.py           # CLIP embeddings and hybrid retrieval
+│   ├── forgetting.py          # Resolution-based memory update
+│   ├── prompts.py             # Evaluation/compression prompts
+│   ├── metrics.py             # EM/F1/VQA metrics
+│   └── api.py                 # API/env config helpers
+├── scripts/                   # Command-line tools
+├── configs/                   # Reproducible config templates
+├── docs/                      # Method, setup, API, taxonomy, evaluation docs
+├── data/classifications/      # Released new-category labels
+├── reports/                   # Aggregated category reports
+└── versions/                  # Historical snapshots, not public entry points
 ```
 
-## 当前版本定位
-
-- `memcanvas/` 是主维护区，后续功能修改优先放这里。
-- `versions/v1_workspace_memcanvas0402/` 是较早期的实验工作区脚本快照。
-- `versions/v2_workspace_codex/` 是后续更大规模实验工作区的代码快照。
-- 大型数据集、模型权重、评测输出和检查点没有并入仓库，避免私有仓体积失控。
-
-## 推荐使用方式
-
-安装核心依赖：
+## Installation
 
 ```bash
-pip install -r requirements-core.txt
+git clone <your-repo-url> MemCanvas
+cd MemCanvas
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+pip install -e .
 ```
 
-如果需要跑研究脚本，再安装扩展依赖：
+For local development without installation:
 
 ```bash
-pip install -r requirements-research.txt
+export PYTHONPATH=$PWD:$PYTHONPATH
 ```
 
-把仓库根目录加入 `PYTHONPATH` 后再运行当前主代码：
+## API and model configuration
+
+No real API keys are committed. Copy the examples and fill in local values:
 
 ```bash
-export PYTHONPATH=/home/cyf/MemCanvas:$PYTHONPATH
+cp .env.example .env
+cp configs/api.example.yaml configs/api.yaml
 ```
 
-## 文档入口
+Supported configuration placeholders include OpenAI-compatible APIs, Anthropic APIs, DashScope/Qwen-compatible APIs, and Hugging Face tokens/cache paths. See `docs/api_configuration.md`.
 
-- `docs/PROJECT_OVERVIEW.md`
-- `docs/REPOSITORY_STRUCTURE.md`
-- `docs/VERSION_MANAGEMENT.md`
-- `docs/GITHUB_PRIVATE_REPO_GUIDE.md`
-- `docs/KNOWN_ISSUES.md`
-- `versions/README.md`
+## Quick start
 
-## 当前整理原则
+### 1. Build canvas memories
 
-- 主代码和历史快照分开管理。
-- 只把“值得版本管理的代码和文档”放进仓库。
-- 不把 `codex` 和 `memcanvas0402` 里的大体积结果目录直接上传。
-- 未来每次大版本改动都保留一个 `versions/` 快照，并同时打 git tag。
+Input records can be JSON or JSONL. Each record may contain fields such as `question`, `choices`, `answer`, `context`, `hint`, `lecture`, `image_path`, and `table`. In the paper setting, the memory bank is built from historical/source interactions; no model weights are trained.
 
-## 许可证
+```bash
+python scripts/build_canvases.py \
+  --input data/examples/sample_records.jsonl \
+  --image-root data/examples/images \
+  --output-dir outputs/demo/canvases
+```
 
-当前仓库按私有内部研究仓准备，暂未声明公开许可证。
+### 2. Build CLIP embeddings
+
+```bash
+python scripts/build_embeddings.py \
+  --canvas-dir outputs/demo/canvases \
+  --manifest outputs/demo/canvases/manifest.json \
+  --output-dir outputs/demo/embeddings
+```
+
+### 3. Retrieve memories
+
+```bash
+python scripts/evaluate.py \
+  --image-embeddings outputs/demo/embeddings/clip_img_emb.npy \
+  --text-embeddings outputs/demo/embeddings/clip_txt_emb.npy \
+  --query-embeddings outputs/demo/embeddings/clip_query_emb.npy \
+  --alpha 0.75 \
+  --top-k 2 \
+  --output outputs/demo/retrieval.json
+```
+
+Full VLM evaluation requires local datasets, canvas banks, query embeddings, and a VLM such as Qwen2.5-VL. The original research scripts are preserved in `versions/` for auditability; new public scripts expose the reusable components.
+
+## Text compression
+
+When text needs to be shortened before rendering, MemCanvas uses an off-the-shelf public LLM through the prompt in `memcanvas/prompts.py`. This is inference-only compression; the project does not require SFT, RL, LoRA, or any other training stage.
+
+## Dataset taxonomy
+
+The released classification files are in `data/classifications/`:
+
+- `topic_labels.txt`: dataset/split/index to major topic and subtopic.
+- `modality_labels.txt`: dataset/split/index to modality and reasoning-hop type.
+
+Aggregated results are in `reports/category_metrics/`. See `docs/dataset_taxonomy.md`.
+
+## Citation
+
+If you use this repository, please cite the MemCanvas paper. The BibTeX entry will be added after publication.
+
+## License
+
+A public license has not yet been selected. Choose a license before publishing this repository publicly.

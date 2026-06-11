@@ -1,12 +1,12 @@
 """
 CLIPAligner - CLIP Vision Token Aligner
 
-模仿 DeepSeek-VL 的设计，对 CLIP 提取的 vision tokens 进行投影和压缩处理。
+text DeepSeek-VL text，text CLIP text vision tokens text。
 
-关键组件：
-1. CLIPAligner: MLP投影层，将vision tokens投影到目标维度
-2. TokenCompressor: 可选的token压缩模块
-3. PositionalEncoding: 位置编码（可选）
+text：
+1. CLIPAligner: MLPtext，textvision tokenstext
+2. TokenCompressor: texttokentext
+3. PositionalEncoding: text（text）
 """
 
 from dataclasses import dataclass
@@ -20,35 +20,35 @@ import torch.nn.functional as F
 
 @dataclass
 class AlignerConfig:
-    """Aligner配置"""
-    # 输入维度（来自CLIP）
+    """Alignertext"""
+    # text（textCLIP）
     input_dim: int = 768
-    # 输出维度（目标空间）
+    # text（text）
     output_dim: int = 1024
-    # 隐藏层维度（None则使用output_dim）
+    # text（Nonetextoutput_dim）
     hidden_dim: Optional[int] = None
-    # 激活函数
+    # text
     activation: str = "gelu"
-    # 是否使用LayerNorm
+    # textLayerNorm
     use_layer_norm: bool = True
-    # Dropout率
+    # Dropouttext
     dropout: float = 0.0
-    # 是否添加位置编码
+    # text
     add_positional_encoding: bool = False
-    # 最大序列长度（用于位置编码）
+    # text（text）
     max_seq_len: int = 1024
 
 
 @dataclass
 class CompressorConfig:
-    """Token压缩配置"""
-    # 压缩方式: none, pooling, resampler, conv
+    """Tokentext"""
+    # text: none, pooling, resampler, conv
     compress_mode: str = "none"
-    # 目标token数量（用于resampler）
+    # texttokentext（textresampler）
     target_tokens: int = 64
-    # pooling模式: mean, max, cls
+    # poolingtext: mean, max, cls
     pooling_mode: str = "mean"
-    # 卷积压缩的kernel和stride
+    # textkerneltextstride
     conv_kernel: int = 2
     conv_stride: int = 2
 
@@ -57,8 +57,8 @@ class CLIPAligner(nn.Module):
     """
     CLIP Vision Token Aligner
 
-    类似DeepSeek-VL的设计：Linear -> Activation -> Linear
-    将CLIP的vision tokens投影到目标维度空间。
+    textDeepSeek-VLtext：Linear -> Activation -> Linear
+    textCLIPtextvision tokenstext。
     """
 
     def __init__(self, config: AlignerConfig):
@@ -125,12 +125,12 @@ class CLIPAligner(nn.Module):
 
 class TokenCompressor(nn.Module):
     """
-    Token压缩模块
+    Tokentext
 
-    支持多种压缩策略：
-    1. pooling: 简单的mean/max pooling
-    2. resampler: 使用可学习的query进行cross-attention压缩
-    3. conv: 使用1D卷积进行下采样
+    text：
+    1. pooling: textmean/max pooling
+    2. resampler: textquerytextcross-attentiontext
+    3. conv: text1Dtext
     """
 
     def __init__(self, config: CompressorConfig, hidden_dim: int):
@@ -139,7 +139,7 @@ class TokenCompressor(nn.Module):
         self.hidden_dim = hidden_dim
 
         if config.compress_mode == "resampler":
-            # 可学习的query tokens
+            # textquery tokens
             self.query_tokens = nn.Parameter(
                 torch.zeros(1, config.target_tokens, hidden_dim)
             )
@@ -154,7 +154,7 @@ class TokenCompressor(nn.Module):
             self.norm = nn.LayerNorm(hidden_dim)
 
         elif config.compress_mode == "conv":
-            # 1D卷积下采样
+            # 1Dtext
             self.conv = nn.Conv1d(
                 hidden_dim, hidden_dim,
                 kernel_size=config.conv_kernel,
@@ -184,18 +184,18 @@ class TokenCompressor(nn.Module):
         return x
 
     def _pooling_compress(self, x: torch.Tensor) -> torch.Tensor:
-        """简单pooling压缩"""
+        """textpoolingtext"""
         if self.config.pooling_mode == "mean":
             return x.mean(dim=1, keepdim=True)
         elif self.config.pooling_mode == "max":
             return x.max(dim=1, keepdim=True)[0]
         elif self.config.pooling_mode == "cls":
-            # 返回第一个token（假设是CLS token）
+            # texttoken（textCLS token）
             return x[:, :1, :]
         return x
 
     def _resampler_compress(self, x: torch.Tensor) -> torch.Tensor:
-        """使用可学习query的cross-attention压缩"""
+        """textquerytextcross-attentiontext"""
         batch_size = x.size(0)
         queries = self.query_tokens.expand(batch_size, -1, -1)
 
@@ -206,7 +206,7 @@ class TokenCompressor(nn.Module):
         return compressed
 
     def _conv_compress(self, x: torch.Tensor) -> torch.Tensor:
-        """1D卷积下采样"""
+        """1Dtext"""
         # [batch, seq, dim] -> [batch, dim, seq]
         x = x.transpose(1, 2)
         x = self.conv(x)
@@ -218,13 +218,13 @@ class TokenCompressor(nn.Module):
 
 class CLIPVisionProcessor(nn.Module):
     """
-    完整的CLIP Vision处理流水线
+    textCLIP Visiontext
 
-    流程：
-    1. CLIP ViT 提取 patch tokens
-    2. CLIPAligner 投影到目标维度
-    3. TokenCompressor 可选压缩
-    4. 输出处理后的 vision tokens
+    text：
+    1. CLIP ViT text patch tokens
+    2. CLIPAligner text
+    3. TokenCompressor text
+    4. text vision tokens
     """
 
     def __init__(
@@ -238,11 +238,11 @@ class CLIPVisionProcessor(nn.Module):
         self.device = device
         self.clip_model_name = clip_model_name
 
-        # 默认配置
+        # text
         self.aligner_config = aligner_config or AlignerConfig()
         self.compressor_config = compressor_config or CompressorConfig()
 
-        # CLIP模型（延迟加载）
+        # CLIPtext（text）
         self.clip_model = None
         self.clip_processor = None
 
@@ -258,7 +258,7 @@ class CLIPVisionProcessor(nn.Module):
         self._initialized = False
 
     def _init_clip(self):
-        """延迟初始化CLIP"""
+        """textCLIP"""
         if self._initialized:
             return
 
@@ -270,7 +270,7 @@ class CLIPVisionProcessor(nn.Module):
         self.clip_model.to(self.device)
         self.clip_model.eval()
 
-        # 更新aligner的输入维度
+        # textalignertext
         actual_hidden_dim = self.clip_model.config.vision_config.hidden_size
         if actual_hidden_dim != self.aligner_config.input_dim:
             print(f"Updating aligner input_dim: {self.aligner_config.input_dim} -> {actual_hidden_dim}")
@@ -284,20 +284,20 @@ class CLIPVisionProcessor(nn.Module):
 
     def extract_features(self, images: list) -> torch.Tensor:
         """
-        从图像列表提取CLIP特征
+        textCLIPtext
 
         Args:
-            images: PIL.Image列表
+            images: PIL.Imagetext
         Returns:
             [num_images, seq_len, hidden_dim] vision tokens
         """
         self._init_clip()
 
-        # 预处理图像
+        # text
         inputs = self.clip_processor(images=images, return_tensors="pt")
         inputs = {k: v.to(self.device) for k, v in inputs.items()}
 
-        # 提取CLIP特征
+        # textCLIPtext
         with torch.no_grad():
             outputs = self.clip_model.vision_model(**inputs)
             vision_tokens = outputs.last_hidden_state  # [batch, seq, hidden]
@@ -306,35 +306,35 @@ class CLIPVisionProcessor(nn.Module):
 
     def forward(self, images: list) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        完整的处理流程
+        text
 
         Args:
-            images: PIL.Image列表
+            images: PIL.Imagetext
         Returns:
             (aligned_tokens, key_embedding)
             - aligned_tokens: [num_images, seq_len', output_dim]
-            - key_embedding: [num_images, output_dim] 用于检索的向量
+            - key_embedding: [num_images, output_dim] textvector
         """
         self._init_clip()
 
-        # 1. 提取CLIP特征
+        # 1. textCLIPtext
         vision_tokens = self.extract_features(images)
 
-        # 2. Aligner投影
+        # 2. Alignertext
         aligned_tokens = self.aligner(vision_tokens)
 
-        # 3. 压缩（可选）
+        # 3. text（text）
         compressed_tokens = self.compressor(aligned_tokens)
 
-        # 4. 生成key embedding（用于检索）
-        # 使用mean pooling作为整体表示
+        # 4. textkey embedding（text）
+        # textmean poolingtext
         key_embedding = aligned_tokens.mean(dim=1)
 
         return compressed_tokens, key_embedding
 
     def process_single(self, image) -> Tuple[np.ndarray, np.ndarray]:
         """
-        处理单张图像，返回numpy数组
+        text，textnumpytext
 
         Args:
             image: PIL.Image
@@ -352,16 +352,16 @@ def create_deepseek_style_processor(
     device: str = "cuda"
 ) -> CLIPVisionProcessor:
     """
-    创建DeepSeek风格的CLIP处理器
+    textDeepSeektextCLIPtext
 
     Args:
-        output_dim: 输出维度（通常匹配LLM的hidden_size）
-        compress_mode: 压缩模式 (none, pooling, resampler, conv)
-        target_tokens: 目标token数（用于resampler）
-        device: 设备
+        output_dim: text（textLLMtexthidden_size）
+        compress_mode: text (none, pooling, resampler, conv)
+        target_tokens: texttokentext（textresampler）
+        device: text
 
     Returns:
-        CLIPVisionProcessor实例
+        CLIPVisionProcessortext
     """
     aligner_config = AlignerConfig(
         input_dim=768,  # CLIP ViT-B/32 default

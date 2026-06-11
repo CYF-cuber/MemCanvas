@@ -463,11 +463,11 @@ def load_siglip_embeddings():
 def generate_report(results: Dict, output_dir: Path):
     """Generate Chinese markdown report."""
     lines = [
-        "# 检索消融实验报告",
+        "# textexperiment report",
         "",
-        f"*生成日期: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*",
+        f"*text: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*",
         "",
-        f"遗忘策略: 频率遗忘 (i=2000, t=0), 2677/12726 记忆存活",
+        f"forgetting strategy: frequency-based forgetting (i=2000, t=0), 2677/12726 textsurviving",
         "",
         "---",
         "",
@@ -481,11 +481,11 @@ def generate_report(results: Dict, output_dir: Path):
 
     # Ablation 1: Top-K
     if 1 in ablations:
-        lines.append("## 消融1: 检索数量 Top-K")
+        lines.append("## text1: text Top-K")
         lines.append("")
-        lines.append("固定条件: α=0.5, Qwen2.5-VL, CLIP-L/14, 频率遗忘")
+        lines.append("Fixed setting: α=0.5, Qwen2.5-VL, CLIP-L/14, frequency-based forgetting")
         lines.append("")
-        lines.append("| K | 准确率 | Δ vs K=2 |")
+        lines.append("| K | accuracy | Δ vs K=2 |")
         lines.append("|:---:|:------:|:--------:|")
         base_acc = ablations[1].get("abl1_topk2", {}).get("accuracy", 0)
         for label in sorted(ablations[1].keys()):
@@ -497,11 +497,11 @@ def generate_report(results: Dict, output_dir: Path):
 
     # Ablation 2: Alpha
     if 2 in ablations:
-        lines.append("## 消融2: 混合系数 α")
+        lines.append("## text2: text α")
         lines.append("")
-        lines.append("固定条件: K=2, Qwen2.5-VL, CLIP-L/14, 频率遗忘")
+        lines.append("Fixed setting: K=2, Qwen2.5-VL, CLIP-L/14, frequency-based forgetting")
         lines.append("")
-        lines.append("| α | 键类型 | 准确率 | Δ vs α=0.5 |")
+        lines.append("| α | text | accuracy | Δ vs α=0.5 |")
         lines.append("|:---:|:------:|:------:|:----------:|")
         base_acc = ablations[2].get("abl2_alpha0.50", {}).get("accuracy", 0)
         for label in sorted(ablations[2].keys()):
@@ -510,21 +510,21 @@ def generate_report(results: Dict, output_dir: Path):
             acc = ablations[2][label].get("accuracy", 0)
             diff = acc - base_acc
             if alpha == 1.0:
-                ktype = "纯图像"
+                ktype = "text"
             elif alpha == 0.0:
-                ktype = "纯文本"
+                ktype = "text"
             else:
-                ktype = f"混合({alpha:.2f})"
+                ktype = f"text({alpha:.2f})"
             lines.append(f"| {alpha:.2f} | {ktype} | {acc:.2f}% | {diff:+.2f}% |")
         lines.append("")
 
     # Ablation 3: VLM
     if 3 in ablations:
-        lines.append("## 消融3: VLM 模型")
+        lines.append("## text3: VLM text")
         lines.append("")
-        lines.append("固定条件: α=0.5, K=2, CLIP-L/14, 频率遗忘")
+        lines.append("Fixed setting: α=0.5, K=2, CLIP-L/14, frequency-based forgetting")
         lines.append("")
-        lines.append("| VLM | 准确率 |")
+        lines.append("| VLM | accuracy |")
         lines.append("|-----|:------:|")
         for label in sorted(ablations[3].keys()):
             vlm_name = "Qwen2.5-VL-7B" if "qwen" in label else "InternVL3.5-8B"
@@ -534,11 +534,11 @@ def generate_report(results: Dict, output_dir: Path):
 
     # Ablation 4: Encoder
     if 4 in ablations:
-        lines.append("## 消融4: 编码器")
+        lines.append("## text4: text")
         lines.append("")
-        lines.append("固定条件: α=0.5, K=2, Qwen2.5-VL, 频率遗忘")
+        lines.append("Fixed setting: α=0.5, K=2, Qwen2.5-VL, frequency-based forgetting")
         lines.append("")
-        lines.append("| 编码器 | 维度 | 准确率 |")
+        lines.append("| text | text | accuracy |")
         lines.append("|--------|:---:|:------:|")
         for label in sorted(ablations[4].keys()):
             if "clip" in label:
@@ -551,7 +551,7 @@ def generate_report(results: Dict, output_dir: Path):
 
     lines.append("---")
     lines.append("")
-    lines.append("*实验环境: NVIDIA RTX A6000, ScienceQA 测试集 (4,241 样本)*")
+    lines.append("*text: NVIDIA RTX A6000, ScienceQA text (4,241 text)*")
 
     report_path = output_dir / "ablation_report.md"
     with open(report_path, "w", encoding="utf-8") as f:

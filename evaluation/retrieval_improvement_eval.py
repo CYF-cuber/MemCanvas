@@ -1088,25 +1088,25 @@ def generate_report(
     report_path = output_dir / "retrieval_report.md"
     lines = []
 
-    lines.append("# 检索策略改进实验报告")
+    lines.append("# textexperiment report")
     lines.append("")
-    lines.append(f"*生成日期: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*")
+    lines.append(f"*text: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*")
     lines.append("")
     lines.append("---")
     lines.append("")
 
-    lines.append("## 1. 实验目标")
+    lines.append("## 1. text")
     lines.append("")
-    lines.append("改进Memory Canvas的检索质量，通过：")
-    lines.append("1. **混合Key Embedding**：结合图像特征和文本特征")
-    lines.append("2. **替代编码器**：测试SigLIP2、MetaCLIP等新一代编码器")
+    lines.append("textMemory Canvastextquality，text：")
+    lines.append("1. **textKey Embedding**：text")
+    lines.append("2. **text**：textSigLIP2、MetaCLIPtext")
     lines.append("")
 
     # Phase 1 results
-    lines.append("## 2. Phase 1: 检索质量指标")
+    lines.append("## 2. Phase 1: textqualitytext")
     lines.append("")
     lines.append(
-        "| 配置 | 平均相似度 | Subject匹配率 | Topic匹配率 | 与Baseline重叠 |"
+        "| text | text | Subjecttext | Topictext | textBaselinetext |"
     )
     lines.append(
         "|------|:---------:|:------------:|:-----------:|:-------------:|"
@@ -1130,19 +1130,19 @@ def generate_report(
 
     # Phase 2 results
     if phase2_results:
-        lines.append("## 3. Phase 2: VLM准确率")
+        lines.append("## 3. Phase 2: VLMaccuracy")
         lines.append("")
-        lines.append("使用v2 (guided+CoT)提示词，Oracle条件。")
+        lines.append("textv2 (guided+CoT)text，Oracletext。")
         lines.append("")
 
         # Reference results
-        lines.append("### 参考基线 (Qwen2.5-VL-7B)")
+        lines.append("### textbaseline (Qwen2.5-VL-7B)")
         lines.append("")
-        lines.append("| 配置 | 准确率 |")
+        lines.append("| text | accuracy |")
         lines.append("|------|:------:|")
-        lines.append("| v2 baseline (无记忆) | 81.70% |")
-        lines.append("| v0 Oracle (原始CLIP-L/14, top-2) | 80.71% |")
-        lines.append("| v2 Oracle (原始CLIP-L/14, top-2) | 82.32% |")
+        lines.append("| v2 baseline (no memory) | 81.70% |")
+        lines.append("| v0 Oracle (textCLIP-L/14, top-2) | 80.71% |")
+        lines.append("| v2 Oracle (textCLIP-L/14, top-2) | 82.32% |")
         lines.append("")
 
         # Group by VLM type, then by (retrieval_config, top_k)
@@ -1172,7 +1172,7 @@ def generate_report(
         vlm_display = {"qwen25vl": "Qwen2.5-VL-7B", "internvl35": "InternVL3.5-8B"}
         for vlm_name in sorted(vlm_groups.keys()):
             display_name = vlm_display.get(vlm_name, vlm_name)
-            lines.append(f"### {display_name}: 检索数量消融 (top-k = 1, 2, 3)")
+            lines.append(f"### {display_name}: text (top-k = 1, 2, 3)")
             lines.append("")
 
             config_groups = vlm_groups[vlm_name]
@@ -1182,7 +1182,7 @@ def generate_report(
             if not all_ks:
                 continue
 
-            header = "| 配置 | " + " | ".join(f"top-{k}" for k in all_ks) + " |"
+            header = "| text | " + " | ".join(f"top-{k}" for k in all_ks) + " |"
             sep = "|------|" + "|".join(":------:" for _ in all_ks) + "|"
             lines.append(header)
             lines.append(sep)
@@ -1202,9 +1202,9 @@ def generate_report(
 
         # VLM comparison table (best config per VLM)
         if len(vlm_groups) > 1:
-            lines.append("### VLM对比 (最佳配置)")
+            lines.append("### VLMtext (text)")
             lines.append("")
-            lines.append("| VLM | 最佳配置 | 准确率 |")
+            lines.append("| VLM | text | accuracy |")
             lines.append("|-----|---------|:------:|")
 
             for vlm_name in sorted(vlm_groups.keys()):
@@ -1225,8 +1225,8 @@ def generate_report(
     lines.append("---")
     lines.append("")
     lines.append(
-        "*实验环境: NVIDIA RTX A6000, Qwen2.5-VL-7B-Instruct / InternVL3.5-8B, "
-        "ScienceQA全量测试集(4,241样本)*"
+        "*text: NVIDIA RTX A6000, Qwen2.5-VL-7B-Instruct / InternVL3.5-8B, "
+        "ScienceQAtext(4,241text)*"
     )
 
     report_text = "\n".join(lines) + "\n"

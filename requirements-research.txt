@@ -5,12 +5,10 @@ transformers>=4.40
 datasets>=2.18
 tqdm>=4.66
 pandas>=2.0
-peft>=0.10
 open_clip_torch>=2.24
 qwen-vl-utils>=0.0.8
-vllm>=0.6.0
 playwright>=1.45
 
-# 按环境二选一安装：
+# Choose one for your environment:
 # faiss-gpu
 faiss-cpu>=1.8.0

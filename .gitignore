@@ -11,6 +11,9 @@ __pycache__/
 .mypy_cache/
 .ipynb_checkpoints/
 
+.env
+.env.*
+!.env.example
 *.log
 *.tmp
 *.bak
@@ -19,17 +22,29 @@ checkpoints/
 outputs/
 tmp/
 cache/
+wandb/
+runs/
 
+# Local datasets and generated memory banks
 data/raw/
 data/cache/
 data/tmp/
+**/canvases/
+**/embeddings/
+**/manifest.jsonl
 
+# Model weights and large artifacts
 *.pt
 *.pth
 *.bin
 *.ckpt
 *.safetensors
+*.npy
+*.npz
+*.pkl
+*.parquet
 
+# LaTeX build outputs
 *.aux
 *.fdb_latexmk
 *.fls

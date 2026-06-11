@@ -1,12 +1,12 @@
 # Data
 
-这个目录只作为仓库内的数据入口说明，不直接存放大型原始数据、模型或评测结果。
+This directory is the repository entry point for small data metadata and examples. It should not store large raw datasets, model weights, or generated evaluation artifacts.
 
-建议约定：
+Recommended convention:
 
-- `data/raw/` 本地原始数据，不提交
-- `data/cache/` 本地缓存，不提交
-- `data/samples/` 小型示例数据，可提交
-- `data/metadata/` 数据说明、字段文档，可提交
+- `data/raw/`: local raw datasets, not committed
+- `data/cache/`: local caches, not committed
+- `data/examples/`: small runnable examples, committed
+- `data/classifications/`: released taxonomy labels, committed
 
-当前私有仓整理目标是“管理代码”，不是把 `memcanvas0402` 或 `codex` 里的海量数据全部并入 git。
+The public repository is intended to manage source code, metadata, and tiny examples, not to vendor the full `memcanvas0402` or `codex` workspaces.

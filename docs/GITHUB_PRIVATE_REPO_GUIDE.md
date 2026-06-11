@@ -1,77 +1,64 @@
-# GitHub 私有仓上传指南
+# GitHub repository guide
 
-## 推荐仓库名
-
-可以使用下面其中一个：
+## Suggested repository names
 
 - `MemCanvas`
-- `memcanvas-private`
+- `memcanvas`
 - `memcanvas-research`
 
-## 本地初始化
+## Local initialization
 
-在仓库根目录执行：
+Run from the repository root:
 
 ```bash
 cd /home/cyf/MemCanvas
 git init
 git branch -M main
 git add .
-git commit -m "init: bootstrap private MemCanvas repository"
+git commit -m "init: bootstrap MemCanvas public release"
 ```
 
-## 方式一：如果本机已登录 `gh`
+## Option 1: GitHub CLI
+
+If `gh` is already authenticated:
 
 ```bash
-gh repo create MemCanvas --private --source=. --remote=origin --push
+gh repo create MemCanvas --public --source=. --remote=origin --push
 ```
 
-优点：
+Use `--private` instead of `--public` if the release should remain private during preparation.
 
-- 直接创建私有仓
-- 自动配置远程
-- 自动首推送
+## Option 2: Manual GitHub setup
 
-## 方式二：网页手动建仓
-
-先在 GitHub 网页创建一个空的 private repo，然后执行：
+Create an empty repository on GitHub, then run:
 
 ```bash
-git remote add origin git@github.com:<你的用户名>/MemCanvas.git
+git remote add origin git@github.com:<your-user-or-org>/MemCanvas.git
 git push -u origin main
 ```
 
-如果你用 HTTPS：
+For HTTPS:
 
 ```bash
-git remote add origin https://github.com/<你的用户名>/MemCanvas.git
+git remote add origin https://github.com/<your-user-or-org>/MemCanvas.git
 git push -u origin main
 ```
 
-## 后续版本管理建议
+## Pre-upload checklist
 
-每次大的结构变化：
-
-```bash
-git add .
-git commit -m "archive: add next workspace snapshot"
-git tag v3-next-milestone
-git push origin main --tags
-```
-
-## 上传前最后检查
-
-建议先看一次：
+Check the staged files before pushing:
 
 ```bash
 git status
 git diff --cached --stat
 ```
 
-重点确认没有误提交：
+Confirm that you are not committing:
 
-- 数据集
+- datasets
 - checkpoints
-- 本地缓存
-- 临时日志
-- 大体积输出图或模型
+- real API keys
+- local caches
+- temporary logs
+- large generated figures or model files
+- fine-tuning/RL/SFT artifacts

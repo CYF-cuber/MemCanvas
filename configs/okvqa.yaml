@@ -1,0 +1,6 @@
+dataset: okvqa
+input: ./data/okvqa/train.jsonl
+image_root: ./data/okvqa/images
+canvas_dir: ./outputs/okvqa/canvases
+embedding_dir: ./outputs/okvqa/embeddings
+metrics: vqa_accuracy

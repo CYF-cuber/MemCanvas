@@ -1,7 +1,7 @@
 """
-ImageRenderer - 图像渲染器
+ImageRenderer - text
 
-处理图像的缩放、裁剪、适配画布等操作。
+text、text、text。
 """
 
 from dataclasses import dataclass
@@ -12,7 +12,7 @@ from pathlib import Path
 
 @dataclass
 class ImageStyle:
-    """图像样式配置"""
+    """text"""
     fit_mode: str = "contain"  # contain, cover, stretch, none
     alignment: str = "center"  # left, center, right
     background_color: Tuple[int, int, int, int] = (255, 255, 255, 255)
@@ -23,9 +23,9 @@ class ImageStyle:
 
 class ImageRenderer:
     """
-    图像渲染器
+    text
 
-    处理图像的加载、缩放、适配等操作。
+    text、text、text。
     """
 
     def __init__(self, style: Optional[ImageStyle] = None):
@@ -38,31 +38,31 @@ class ImageRenderer:
         target_height: int
     ) -> Image.Image:
         """
-        渲染图像到目标尺寸
+        text
 
         Args:
-            source: 图像路径或 PIL Image 对象
-            target_width: 目标宽度
-            target_height: 目标高度
+            source: text PIL Image object
+            target_width: text
+            target_height: text
 
         Returns:
-            处理后的 RGBA 图像
+            text RGBA text
         """
-        # 加载图像
+        # text
         if isinstance(source, (str, Path)):
             image = Image.open(source)
         else:
             image = source
 
-        # 转换为 RGBA
+        # text RGBA
         if image.mode != 'RGBA':
             image = image.convert('RGBA')
 
-        # 计算实际可用区域（减去 padding 和 border）
+        # text（text padding text border）
         available_width = target_width - 2 * (self.style.padding + self.style.border_width)
         available_height = target_height - 2 * (self.style.padding + self.style.border_width)
 
-        # 根据 fit_mode 处理
+        # text fit_mode text
         if self.style.fit_mode == "contain":
             fitted = self._fit_contain(image, available_width, available_height)
         elif self.style.fit_mode == "cover":
@@ -72,10 +72,10 @@ class ImageRenderer:
         else:  # none
             fitted = image
 
-        # 创建目标画布
+        # text
         result = Image.new('RGBA', (target_width, target_height), self.style.background_color)
 
-        # 绘制边框（如果有）
+        # text（text）
         if self.style.border_width > 0:
             from PIL import ImageDraw
             draw = ImageDraw.Draw(result)
@@ -90,10 +90,10 @@ class ImageRenderer:
                 width=self.style.border_width
             )
 
-        # 计算粘贴位置（根据对齐方式）
+        # text（text）
         offset = self.style.padding + self.style.border_width
 
-        # 水平对齐
+        # text
         if self.style.alignment == "left":
             paste_x = offset
         elif self.style.alignment == "right":
@@ -101,10 +101,10 @@ class ImageRenderer:
         else:  # center
             paste_x = offset + (available_width - fitted.width) // 2
 
-        # 垂直居中
+        # text
         paste_y = offset + (available_height - fitted.height) // 2
 
-        # 粘贴图像
+        # text
         result.paste(fitted, (paste_x, paste_y), fitted)
 
         return result
@@ -116,16 +116,16 @@ class ImageRenderer:
         target_height: int
     ) -> Image.Image:
         """
-        Contain 模式：保持比例，完整显示图像
+        Contain text：text，text
 
-        图像会被缩放以完全适应目标区域，可能有留白。
+        text，text。
         """
-        # 计算缩放比例
+        # text
         width_ratio = target_width / image.width
         height_ratio = target_height / image.height
         ratio = min(width_ratio, height_ratio)
 
-        # 计算新尺寸
+        # text
         new_width = int(image.width * ratio)
         new_height = int(image.height * ratio)
 
@@ -138,21 +138,21 @@ class ImageRenderer:
         target_height: int
     ) -> Image.Image:
         """
-        Cover 模式：保持比例，填满目标区域
+        Cover text：text，text
 
-        图像会被缩放并裁剪以填满目标区域。
+        text。
         """
-        # 计算缩放比例
+        # text
         width_ratio = target_width / image.width
         height_ratio = target_height / image.height
         ratio = max(width_ratio, height_ratio)
 
-        # 先缩放
+        # text
         new_width = int(image.width * ratio)
         new_height = int(image.height * ratio)
         scaled = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
 
-        # 居中裁剪
+        # text
         left = (new_width - target_width) // 2
         top = (new_height - target_height) // 2
         right = left + target_width
@@ -162,13 +162,13 @@ class ImageRenderer:
 
     def load(self, source: Union[str, Path]) -> Image.Image:
         """
-        加载图像
+        text
 
         Args:
-            source: 图像路径
+            source: text
 
         Returns:
-            PIL Image 对象
+            PIL Image object
         """
         image = Image.open(source)
         if image.mode != 'RGBA':
@@ -181,14 +181,14 @@ class ImageRenderer:
         size: Tuple[int, int] = (256, 256)
     ) -> Image.Image:
         """
-        创建缩略图
+        text
 
         Args:
-            source: 图像源
-            size: 缩略图尺寸
+            source: text
+            size: text
 
         Returns:
-            缩略图
+            text
         """
         if isinstance(source, (str, Path)):
             image = Image.open(source)
@@ -209,21 +209,21 @@ class ImageRenderer:
         gap: int = 10
     ) -> Image.Image:
         """
-        创建图像网格
+        text
 
         Args:
-            images: 图像列表
-            grid_size: (列数, 行数)
-            cell_size: 每个单元格尺寸
-            gap: 单元格间距
+            images: text
+            grid_size: (text, text)
+            cell_size: text
+            gap: text
 
         Returns:
-            网格图像
+            text
         """
         cols, rows = grid_size
         cell_w, cell_h = cell_size
 
-        # 计算总尺寸
+        # text
         total_width = cols * cell_w + (cols - 1) * gap
         total_height = rows * cell_h + (rows - 1) * gap
 
@@ -239,7 +239,7 @@ class ImageRenderer:
             x = col * (cell_w + gap)
             y = row * (cell_h + gap)
 
-            # 渲染单个图像到单元格
+            # text
             cell_img = self.render(img, cell_w, cell_h)
             result.paste(cell_img, (x, y), cell_img)
 

@@ -1,13 +1,13 @@
 """
-VisionTokenExtractor - Vision Token提取器
+VisionTokenExtractor - Vision Tokentext
 
-从切分后的画布patches中提取vision tokens。
-支持多种vision encoder后端。
+textpatchestextvision tokens。
+textvision encodertext。
 
-增强版支持：
-- DeepSeek风格的Aligner投影
-- Token压缩（resampler/pooling/conv）
-- 位置编码
+text：
+- DeepSeektextAlignertext
+- Tokentext（resampler/pooling/conv）
+- text
 """
 
 from dataclasses import dataclass, field
@@ -21,69 +21,69 @@ from .canvas_slicer import SliceResult
 
 @dataclass
 class TokenExtractionConfig:
-    """Token提取配置"""
-    # 使用的vision encoder类型
+    """Tokentext"""
+    # textvision encodertext
     encoder_type: str = "clip"  # clip, siglip, clip-aligned
-    # 模型名称/路径
+    # text/text
     model_name: str = "openai/clip-vit-base-patch32"
-    # 设备
+    # text
     device: str = "cuda"
-    # 是否返回attention weights
+    # textattention weights
     return_attention: bool = False
     # batch size
     batch_size: int = 4
 
-    # === DeepSeek风格Aligner配置 ===
-    # 是否使用Aligner投影（模仿DeepSeek-VL）
+    # === DeepSeektextAlignertext ===
+    # textAlignertext（textDeepSeek-VL）
     use_aligner: bool = False
-    # Aligner输出维度
+    # Alignertext
     aligner_output_dim: int = 1024
-    # Aligner隐藏层维度
+    # Alignertext
     aligner_hidden_dim: Optional[int] = None
-    # 是否添加位置编码
+    # text
     add_positional_encoding: bool = False
 
-    # === Token压缩配置 ===
-    # 压缩模式: none, pooling, resampler, conv
+    # === Tokentext ===
+    # text: none, pooling, resampler, conv
     compress_mode: str = "none"
-    # 目标token数（用于resampler）
+    # texttokentext（textresampler）
     target_tokens: int = 64
-    # pooling模式: mean, max, cls
+    # poolingtext: mean, max, cls
     pooling_mode: str = "mean"
 
 
 @dataclass
 class VisionTokens:
-    """Vision Token结果"""
-    # 全局视图的tokens [num_tokens, hidden_dim]
+    """Vision Tokentext"""
+    # texttokens [num_tokens, hidden_dim]
     global_tokens: np.ndarray
-    # 各patch的tokens list of [num_tokens, hidden_dim]
+    # textpatchtexttokens list of [num_tokens, hidden_dim]
     patch_tokens: List[np.ndarray]
-    # 合并后的所有tokens [total_tokens, hidden_dim]
+    # texttokens [total_tokens, hidden_dim]
     all_tokens: np.ndarray
-    # token数量统计
+    # tokentext
     num_global_tokens: int
     num_patch_tokens: int
     total_tokens: int
     # hidden dimension
     hidden_dim: int
-    # key embedding用于检索 [hidden_dim]
+    # key embeddingtext [hidden_dim]
     key_embedding: Optional[np.ndarray] = None
-    # 是否经过了Aligner处理
+    # textAlignertext
     is_aligned: bool = False
-    # 是否经过了压缩
+    # text
     is_compressed: bool = False
 
 
 class VisionTokenExtractor:
     """
-    Vision Token提取器
+    Vision Tokentext
 
-    从SliceResult中提取vision tokens。
+    textSliceResulttextvision tokens。
 
-    支持两种模式：
-    1. 基础模式：直接使用CLIP/SigLIP提取tokens
-    2. DeepSeek风格模式：CLIP + Aligner投影 + 可选压缩
+    text：
+    1. text：textCLIP/SigLIPtexttokens
+    2. DeepSeektext：CLIP + Alignertext + text
     """
 
     def __init__(self, config: Optional[TokenExtractionConfig] = None):
@@ -95,7 +95,7 @@ class VisionTokenExtractor:
         self._initialized = False
 
     def _init_model(self):
-        """延迟初始化模型"""
+        """text"""
         if self._initialized:
             return
 
@@ -111,7 +111,7 @@ class VisionTokenExtractor:
         self._initialized = True
 
     def _init_clip(self):
-        """初始化CLIP模型"""
+        """textCLIPtext"""
         try:
             from transformers import CLIPModel, CLIPProcessor
             self.model = CLIPModel.from_pretrained(self.config.model_name)
@@ -119,15 +119,15 @@ class VisionTokenExtractor:
             self.model.to(self.config.device)
             self.model.eval()
 
-            # 如果启用aligner，初始化它
+            # textaligner，text
             if self.config.use_aligner:
                 self._init_aligner()
 
         except ImportError:
-            raise ImportError("请安装transformers: pip install transformers")
+            raise ImportError("texttransformers: pip install transformers")
 
     def _init_siglip(self):
-        """初始化SigLIP模型"""
+        """textSigLIPtext"""
         try:
             from transformers import SiglipModel, SiglipProcessor
             self.model = SiglipModel.from_pretrained(self.config.model_name)
@@ -139,30 +139,30 @@ class VisionTokenExtractor:
                 self._init_aligner()
 
         except ImportError:
-            raise ImportError("请安装transformers: pip install transformers")
+            raise ImportError("texttransformers: pip install transformers")
 
     def _init_clip_aligned(self):
-        """初始化CLIP + Aligner模式"""
+        """textCLIP + Alignertext"""
         self._init_clip()
         if not self.config.use_aligner:
             self.config.use_aligner = True
             self._init_aligner()
 
     def _init_aligner(self):
-        """初始化Aligner和Compressor"""
+        """textAlignertextCompressor"""
         import torch
         from .clip_aligner import (
             CLIPAligner, TokenCompressor,
             AlignerConfig, CompressorConfig
         )
 
-        # 获取CLIP的hidden dimension
+        # textCLIPtexthidden dimension
         if hasattr(self.model, 'config'):
             input_dim = self.model.config.vision_config.hidden_size
         else:
             input_dim = 768  # default for ViT-B
 
-        # 创建Aligner配置
+        # textAlignertext
         aligner_config = AlignerConfig(
             input_dim=input_dim,
             output_dim=self.config.aligner_output_dim,
@@ -172,14 +172,14 @@ class VisionTokenExtractor:
             add_positional_encoding=self.config.add_positional_encoding
         )
 
-        # 创建Compressor配置
+        # textCompressortext
         compressor_config = CompressorConfig(
             compress_mode=self.config.compress_mode,
             target_tokens=self.config.target_tokens,
             pooling_mode=self.config.pooling_mode
         )
 
-        # 初始化模块
+        # text
         self.aligner = CLIPAligner(aligner_config)
         self.aligner.to(self.config.device)
         self.aligner.eval()
@@ -192,23 +192,23 @@ class VisionTokenExtractor:
         self.compressor.eval()
 
     def extract(self, slice_result: SliceResult) -> VisionTokens:
-        """从SliceResult提取vision tokens"""
+        """textSliceResulttextvision tokens"""
         self._init_model()
 
-        # 提取全局视图tokens
+        # texttokens
         global_tokens = self._extract_single(slice_result.global_view)
 
-        # 提取patch tokens
+        # textpatch tokens
         patch_tokens = []
         for patch in slice_result.patches:
             tokens = self._extract_single(patch)
             patch_tokens.append(tokens)
 
-        # 合并所有tokens
+        # texttokens
         all_list = [global_tokens] + patch_tokens
         all_tokens = np.concatenate(all_list, axis=0)
 
-        # 计算key embedding（用于检索）
+        # textkey embedding（text）
         key_embedding = global_tokens.mean(axis=0)
 
         return VisionTokens(
@@ -226,12 +226,12 @@ class VisionTokenExtractor:
 
     def extract_batch(self, images: List[Image.Image]) -> List[np.ndarray]:
         """
-        批量提取vision tokens
+        textvision tokens
 
         Args:
-            images: PIL.Image列表
+            images: PIL.Imagetext
         Returns:
-            tokens列表，每个元素是 [seq_len, hidden_dim]
+            tokenstext，text [seq_len, hidden_dim]
         """
         self._init_model()
         import torch
@@ -242,25 +242,25 @@ class VisionTokenExtractor:
         for i in range(0, len(images), batch_size):
             batch_images = images[i:i + batch_size]
 
-            # 预处理
+            # text
             batch_images = [img.convert('RGB') if img.mode != 'RGB' else img for img in batch_images]
             inputs = self.processor(images=batch_images, return_tensors="pt")
             inputs = {k: v.to(self.config.device) for k, v in inputs.items()}
 
             with torch.no_grad():
-                # CLIP提取
+                # CLIPtext
                 outputs = self.model.vision_model(**inputs)
                 hidden_states = outputs.last_hidden_state  # [batch, seq, hidden]
 
-                # Aligner投影
+                # Alignertext
                 if self.aligner is not None:
                     hidden_states = self.aligner(hidden_states)
 
-                # 压缩
+                # text
                 if self.compressor is not None:
                     hidden_states = self.compressor(hidden_states)
 
-            # 转换为numpy
+            # textnumpy
             batch_tokens = hidden_states.cpu().numpy()
             for j in range(batch_tokens.shape[0]):
                 results.append(batch_tokens[j])
@@ -268,7 +268,7 @@ class VisionTokenExtractor:
         return results
 
     def _extract_single(self, image: Image.Image) -> np.ndarray:
-        """提取单张图像的vision tokens"""
+        """textvision tokens"""
         import torch
 
         if image.mode != 'RGB':
@@ -278,27 +278,27 @@ class VisionTokenExtractor:
         inputs = {k: v.to(self.config.device) for k, v in inputs.items()}
 
         with torch.no_grad():
-            # 提取CLIP特征
+            # textCLIPtext
             if self.config.encoder_type in ["clip", "clip-aligned"]:
                 outputs = self.model.vision_model(**inputs)
             else:
                 outputs = self.model.vision_model(**inputs)
 
-            # 获取最后一层hidden states
+            # texthidden states
             hidden_states = outputs.last_hidden_state  # [1, seq, hidden]
 
-            # Aligner投影（DeepSeek风格）
+            # Alignertext（DeepSeektext）
             if self.aligner is not None:
                 hidden_states = self.aligner(hidden_states)
 
-            # Token压缩
+            # Tokentext
             if self.compressor is not None:
                 hidden_states = self.compressor(hidden_states)
 
         return hidden_states.cpu().numpy().squeeze(0)
 
     def get_config_summary(self) -> dict:
-        """获取配置摘要"""
+        """text"""
         return {
             "encoder_type": self.config.encoder_type,
             "model_name": self.config.model_name,
@@ -317,22 +317,22 @@ def create_deepseek_style_extractor(
     device: str = "cuda"
 ) -> VisionTokenExtractor:
     """
-    创建DeepSeek风格的Vision Token提取器
+    textDeepSeektextVision Tokentext
 
-    模仿DeepSeek-VL的设计：
-    1. CLIP ViT提取patch tokens
-    2. MLP Aligner投影到LLM空间
-    3. 可选的token压缩
+    textDeepSeek-VLtext：
+    1. CLIP ViTtextpatch tokens
+    2. MLP AlignertextLLMtext
+    3. texttokentext
 
     Args:
-        output_dim: 输出维度（通常匹配LLM的hidden_size）
-        compress_mode: 压缩模式 (none, pooling, resampler, conv)
-        target_tokens: 目标token数（用于resampler）
-        model_name: CLIP模型名称
-        device: 设备
+        output_dim: text（textLLMtexthidden_size）
+        compress_mode: text (none, pooling, resampler, conv)
+        target_tokens: texttokentext（textresampler）
+        model_name: CLIPtext
+        device: text
 
     Returns:
-        配置好的VisionTokenExtractor
+        textVisionTokenExtractor
     """
     config = TokenExtractionConfig(
         encoder_type="clip-aligned",

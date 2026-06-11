@@ -1,12 +1,12 @@
 """
-MemoryToken - 记忆Token数据结构
+MemoryToken - textTokentext
 
-将画布转换为可存储的记忆单元，包含:
-- vision tokens: 视觉特征
-- key embedding: 用于检索的关键向量
-- metadata: 元信息
+text，text:
+- vision tokens: text
+- key embedding: textvector
+- metadata: text
 
-支持DeepSeek风格的Aligner处理。
+textDeepSeektextAlignertext。
 """
 
 from dataclasses import dataclass, field
@@ -18,44 +18,44 @@ import json
 
 @dataclass
 class MemoryMeta:
-    """记忆元信息"""
+    """text"""
     memory_id: str
     created_at: datetime
     source: List[str]
     modalities: List[str]
-    # 原始画布尺寸
+    # text
     canvas_size: tuple
-    # 切分信息
+    # text
     num_patches: int
     total_tokens: int
-    # 自定义元数据
+    # text
     extra: Dict[str, Any] = field(default_factory=dict)
-    # 是否经过Aligner处理
+    # textAlignertext
     is_aligned: bool = False
-    # 压缩模式
+    # text
     compress_mode: str = "none"
 
 
 @dataclass
 class MemoryToken:
-    """记忆Token单元"""
+    """textTokentext"""
     # Vision tokens [total_tokens, hidden_dim]
     tokens: np.ndarray
-    # Key embedding用于检索 [key_dim]
+    # Key embeddingtext [key_dim]
     key_embedding: np.ndarray
-    # 元信息
+    # text
     meta: MemoryMeta
-    # 空白mask [total_tokens] True=有效, False=空白
+    # textmask [total_tokens] True=text, False=text
     valid_mask: Optional[np.ndarray] = None
 
     def get_valid_tokens(self) -> np.ndarray:
-        """获取非空白的有效tokens"""
+        """texttokens"""
         if self.valid_mask is None:
             return self.tokens
         return self.tokens[self.valid_mask]
 
     def save(self, path: str):
-        """保存到文件"""
+        """text"""
         np.savez_compressed(
             path,
             tokens=self.tokens,
@@ -80,7 +80,7 @@ class MemoryToken:
 
     @classmethod
     def load(cls, path: str) -> "MemoryToken":
-        """从文件加载"""
+        """text"""
         data = np.load(path, allow_pickle=True)
         meta_dict = json.loads(str(data['meta']))
         meta = MemoryMeta(
@@ -105,14 +105,14 @@ class MemoryToken:
 
 class MemoryTokenBuilder:
     """
-    构建MemoryToken的工具类
+    textMemoryTokentext
 
-    支持两种模式：
-    1. 基础模式：直接使用CLIP提取的tokens
-    2. DeepSeek风格模式：CLIP + Aligner投影 + 可选压缩
+    text：
+    1. text：textCLIPtexttokens
+    2. DeepSeektext：CLIP + Alignertext + text
     """
 
-    # 空白检测阈值 (像素方差)
+    # text (text)
     BLANK_THRESHOLD = 100
 
     def __init__(
@@ -126,12 +126,12 @@ class MemoryTokenBuilder:
     ):
         """
         Args:
-            vision_extractor: 现有的VisionTokenExtractor实例
-            use_deepseek_style: 是否使用DeepSeek风格的处理
-            aligner_output_dim: Aligner输出维度
-            compress_mode: 压缩模式 (none, pooling, resampler, conv)
-            target_tokens: 目标token数（用于resampler）
-            device: 设备
+            vision_extractor: textVisionTokenExtractortext
+            use_deepseek_style: textDeepSeektext
+            aligner_output_dim: Alignertext
+            compress_mode: text (none, pooling, resampler, conv)
+            target_tokens: texttokentext（textresampler）
+            device: text
         """
         self.vision_extractor = vision_extractor
         self.use_deepseek_style = use_deepseek_style
@@ -140,12 +140,12 @@ class MemoryTokenBuilder:
         self.target_tokens = target_tokens
         self.device = device
 
-        # 如果需要DeepSeek风格但没有提供extractor，创建一个
+        # textDeepSeektextextractor，text
         if use_deepseek_style and vision_extractor is None:
             self._init_deepseek_style_extractor()
 
     def _init_deepseek_style_extractor(self):
-        """初始化DeepSeek风格的extractor"""
+        """textDeepSeektextextractor"""
         from .vision_extractor import create_deepseek_style_extractor
         self.vision_extractor = create_deepseek_style_extractor(
             output_dim=self.aligner_output_dim,
@@ -162,17 +162,17 @@ class MemoryTokenBuilder:
         memory_id: Optional[str] = None
     ) -> MemoryToken:
         """
-        从画布构建MemoryToken
+        textMemoryToken
 
         Args:
-            canvas: 画布对象或PIL.Image
-            slice_result: SliceResult切分结果
-            vision_tokens: 预计算的VisionTokens（可选）
-            memory_id: 记忆ID（可选）
+            canvas: textobjecttextPIL.Image
+            slice_result: SliceResulttext
+            vision_tokens: textVisionTokens（text）
+            memory_id: memory ID（text）
         """
         from PIL import Image
 
-        # 获取canvas图像
+        # textcanvastext
         if hasattr(canvas, 'get_image'):
             canvas_img = canvas.get_image()
         elif isinstance(canvas, Image.Image):
@@ -180,14 +180,14 @@ class MemoryTokenBuilder:
         else:
             raise ValueError("Invalid canvas type")
 
-        # 如果没有预计算的vision_tokens，则提取
+        # textvision_tokens，text
         if vision_tokens is None and self.vision_extractor is not None:
             vision_tokens = self.vision_extractor.extract(slice_result)
 
-        # 检测空白区域
+        # text
         valid_mask = self._detect_valid_regions(slice_result)
 
-        # 生成key embedding
+        # textkey embedding
         if vision_tokens is not None:
             key_emb = vision_tokens.key_embedding
             if key_emb is None:
@@ -201,7 +201,7 @@ class MemoryTokenBuilder:
             is_aligned = False
             is_compressed = False
 
-        # 构建meta
+        # textmeta
         meta = MemoryMeta(
             memory_id=memory_id or getattr(canvas, 'metadata', {}).get('memory_id', 'unknown'),
             created_at=datetime.now(),
@@ -227,20 +227,20 @@ class MemoryTokenBuilder:
         )
 
     def _detect_valid_regions(self, slice_result) -> np.ndarray:
-        """检测非空白区域"""
+        """text"""
         valid_list = []
 
-        # 检测全局视图
+        # text
         valid_list.append(not self._is_blank(slice_result.global_view))
 
-        # 检测每个patch
+        # textpatch
         for patch in slice_result.patches:
             valid_list.append(not self._is_blank(patch))
 
         return np.array(valid_list, dtype=bool)
 
     def _is_blank(self, image) -> bool:
-        """判断图像是否为空白"""
+        """text"""
         arr = np.array(image)
         variance = arr.var()
         return variance < self.BLANK_THRESHOLD
@@ -253,16 +253,16 @@ def create_deepseek_memory_builder(
     device: str = "cuda"
 ) -> MemoryTokenBuilder:
     """
-    创建DeepSeek风格的MemoryToken构建器
+    textDeepSeektextMemoryTokentext
 
     Args:
-        output_dim: 输出维度
-        compress_mode: 压缩模式
-        target_tokens: 目标token数
-        device: 设备
+        output_dim: text
+        compress_mode: text
+        target_tokens: texttokentext
+        device: text
 
     Returns:
-        配置好的MemoryTokenBuilder
+        textMemoryTokenBuilder
     """
     return MemoryTokenBuilder(
         use_deepseek_style=True,

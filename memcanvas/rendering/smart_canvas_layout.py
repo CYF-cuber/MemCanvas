@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-SmartCanvasLayout — 先量后造的画布布局优化器
+SmartCanvasLayout — text
 
-核心思想：先预估每个内容块的矩形尺寸，再通过排列优化组成接近方形的画布。
+text：text，text。
 
-对比 DynamicCanvas（固定 640×640 patch，单列填充）的改进：
-1. 动态画布尺寸，按内容量自适应
-2. 支持多列/图文并排布局
-3. 目标：最小化空白率，纵横比接近 1:1
+text DynamicCanvas（text 640×640 patch，text）text：
+1. text，text
+2. text/text
+3. text：text，text 1:1
 
 Usage:
     python smart_canvas_layout.py

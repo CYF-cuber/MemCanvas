@@ -549,40 +549,40 @@ def generate_report(all_results: Dict, output_dir: Path) -> Path:
     report_path = output_dir / "prompt_report.md"
     lines = []
 
-    lines.append("# VLM 提示词改进实验报告")
+    lines.append("# VLM textexperiment report")
     lines.append("")
-    lines.append(f"*生成日期: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*")
+    lines.append(f"*text: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*")
     lines.append("")
     lines.append("---")
     lines.append("")
-    lines.append("## 1. 实验目标")
+    lines.append("## 1. text")
     lines.append("")
-    lines.append("测试不同提示词设计对 Memory Canvas 辅助 VLM 回答 ScienceQA 的影响。")
-    lines.append("当前提示词（v0）没有告诉VLM如何利用画布中的丰富信息（正确答案标记、背景知识、解题思路），")
-    lines.append("导致Oracle准确率仅80.71%，相比无记忆基线(78.73%)提升有限。")
+    lines.append("text Memory Canvas text VLM text ScienceQA text。")
+    lines.append("text（v0）textVLMtext（text、text、text），")
+    lines.append("causesOracleaccuracytext80.71%，compared withno memorybaseline(78.73%)limited improvement。")
     lines.append("")
 
-    lines.append("## 2. 提示词变体")
+    lines.append("## 2. textvariant")
     lines.append("")
-    lines.append("| 变体 | 说明 | max_new_tokens | 答案提取 |")
+    lines.append("| variant | text | max_new_tokens | text |")
     lines.append("|------|------|---------------|---------|")
-    lines.append("| v0 (current) | 原始提示词 | 20 | 首个A-F字符 |")
-    lines.append("| v1 (guided) | 告诉VLM画布内容及用途 | 20 | 首个A-F字符 |")
-    lines.append("| v2 (guided+CoT) | v1 + 允许推理 | 512 | 末尾A-F字符 |")
-    lines.append("| v3 (sys+guided+CoT) | v2 + system prompt | 512 | 末尾A-F字符 |")
+    lines.append("| v0 (current) | text | 20 | textA-Ftext |")
+    lines.append("| v1 (guided) | textVLMtext | 20 | textA-Ftext |")
+    lines.append("| v2 (guided+CoT) | v1 + text | 512 | textA-Ftext |")
+    lines.append("| v3 (sys+guided+CoT) | v2 + system prompt | 512 | textA-Ftext |")
     lines.append("")
 
-    lines.append("## 3. 实验条件")
+    lines.append("## 3. text")
     lines.append("")
-    lines.append("- **Oracle**: 全部12,726条记忆，PNG质量，top-2检索")
-    lines.append("- **Baseline**: 无记忆")
-    lines.append("- 模型: Qwen2.5-VL-7B-Instruct")
-    lines.append("- 编码器: CLIP-L/14 (768维)")
+    lines.append("- **Oracle**: all12,726memories，PNGquality，top-2text")
+    lines.append("- **Baseline**: no memory")
+    lines.append("- text: Qwen2.5-VL-7B-Instruct")
+    lines.append("- text: CLIP-L/14 (768text)")
     lines.append("")
 
-    lines.append("## 4. 结果总览")
+    lines.append("## 4. text")
     lines.append("")
-    lines.append("| 变体 | Baseline (无记忆) | Oracle (有记忆) | 记忆提升 |")
+    lines.append("| variant | Baseline (no memory) | Oracle (with memory) | memory gain |")
     lines.append("|------|------------------|----------------|---------|")
 
     variants_in_results = sorted(
@@ -609,11 +609,11 @@ def generate_report(all_results: Dict, output_dir: Path) -> Path:
     }
     if oracle_accs:
         best_variant = max(oracle_accs, key=oracle_accs.get)
-        lines.append(f"**最佳Oracle变体**: {best_variant} ({oracle_accs[best_variant]:.2f}%)")
+        lines.append(f"**textOraclevariant**: {best_variant} ({oracle_accs[best_variant]:.2f}%)")
         lines.append("")
 
     # Subject-level breakdown for each variant
-    lines.append("## 5. 按学科统计 (Oracle条件)")
+    lines.append("## 5. text (Oracletext)")
     lines.append("")
 
     for variant in variants_in_results:
@@ -626,7 +626,7 @@ def generate_report(all_results: Dict, output_dir: Path) -> Path:
         subject_stats = compute_subject_stats(preds)
         lines.append(f"### {variant}")
         lines.append("")
-        lines.append("| 学科 | 正确 | 总数 | 准确率 |")
+        lines.append("| text | text | text | accuracy |")
         lines.append("|------|------|------|--------|")
         for subj in sorted(subject_stats.keys()):
             s = subject_stats[subj]
@@ -634,7 +634,7 @@ def generate_report(all_results: Dict, output_dir: Path) -> Path:
         lines.append("")
 
     # CoT answer extraction analysis
-    lines.append("## 6. CoT 答案提取分析")
+    lines.append("## 6. CoT text")
     lines.append("")
     for variant in ["v2", "v3"]:
         oracle_key = f"{variant}_oracle"
@@ -647,11 +647,11 @@ def generate_report(all_results: Dict, output_dir: Path) -> Path:
             continue
         avg_len = np.mean([len(p["raw_response"]) for p in with_response])
         lines.append(f"### {variant}")
-        lines.append(f"- 平均响应长度: {avg_len:.0f} 字符 (截断至500)")
-        lines.append(f"- 样本数: {len(with_response)}")
+        lines.append(f"- text: {avg_len:.0f} text (text500)")
+        lines.append(f"- text: {len(with_response)}")
         # Show a few examples
         lines.append("")
-        lines.append("示例响应（前3个）:")
+        lines.append("text（text3text）:")
         lines.append("")
         for p in with_response[:3]:
             lines.append(f"- **PID {p['pid']}**: predicted={p['predicted']}, "
@@ -663,7 +663,7 @@ def generate_report(all_results: Dict, output_dir: Path) -> Path:
 
     lines.append("---")
     lines.append("")
-    lines.append(f"*实验环境: NVIDIA GPU, Qwen2.5-VL-7B-Instruct, CLIP-L/14*")
+    lines.append(f"*text: NVIDIA GPU, Qwen2.5-VL-7B-Instruct, CLIP-L/14*")
 
     report_content = "\n".join(lines) + "\n"
     with open(report_path, "w", encoding="utf-8") as f:

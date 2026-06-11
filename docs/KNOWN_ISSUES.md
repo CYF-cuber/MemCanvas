@@ -1,34 +1,18 @@
-# 当前已知问题
+# Known issues
 
-## 1. 研究脚本仍有本机路径依赖
+## Historical scripts may contain local paths
 
-`evaluation/`、`training/`、`scripts/` 中部分脚本来自旧工作区，仍然写死了类似下面的路径：
+Some files under `versions/` or older `evaluation/` directories are preserved for provenance and may contain paths such as:
 
 - `/home/cyf/codex/...`
 - `/home/cyf/memory/...`
 
-这类脚本目前更适合“内部归档和继续手改”，不应在 README 中宣称为完全可移植。
+They should not be presented as the portable public API.
 
-## 2. 主包和旧脚本是两个层次
+## Public method is training-free
 
-- `memcanvas/` 代表当前整理后的主代码
-- 旧实验脚本代表研究过程快照
+Training, SFT, RL, and LoRA-related code is intentionally excluded from the public release path because the final paper describes MemCanvas as training-free. Text compression uses an off-the-shelf public LLM at inference time.
 
-二者不应混为“完全同一套可复现环境”。
+## Large artifacts are not included
 
-## 3. 大型数据与权重未并入仓库
-
-这是有意设计，不是缺失。原因是：
-
-- `memcanvas0402` 和 `codex` 体积过大
-- 私有 git 仓不适合直接承载海量数据和检查点
-
-## 4. 本地环境依赖尚未统一
-
-当前环境中甚至可能缺少基础库（例如 `Pillow`）。因此仓库里补了：
-
-- `requirements-core.txt`
-- `requirements-research.txt`
-- `pyproject.toml`
-
-后续建议先固定一个 Python 环境，再逐步清理脚本。
+Datasets, generated canvases, embeddings, checkpoints, and model weights are intentionally excluded from git. Use the config templates to point to local copies.

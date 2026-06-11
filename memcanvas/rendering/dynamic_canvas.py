@@ -1,16 +1,16 @@
 """
-DynamicCanvas - 动态画布系统
+DynamicCanvas - text
 
-核心思想：
-- 以 patch 为基本单位进行填充
-- 填满一个 patch 后自动创建下一个
-- 不浪费空间，不丢失信息
-- 生成的 patches 可直接提取 vision tokens
+text：
+- text patch text
+- text patch text
+- text，text
+- text patches text vision tokens
 
-优势：
-1. 空间利用率高 - 每个 patch 都被充分利用
-2. 无信息丢失 - 内容多就创建更多 patches
-3. 与 vision token 提取天然对齐
+text：
+1. text - text patch text
+2. text - text patches
+3. text vision token text
 """
 
 from dataclasses import dataclass, field
@@ -21,7 +21,7 @@ import os
 
 
 class ContentType(Enum):
-    """内容类型"""
+    """text"""
     TEXT = "text"
     IMAGE = "image"
     TABLE = "table"
@@ -30,83 +30,83 @@ class ContentType(Enum):
 
 @dataclass
 class ContentBlock:
-    """内容块"""
+    """text"""
     type: ContentType
     data: Any
-    # 渲染后的尺寸
+    # text
     width: int = 0
     height: int = 0
-    # 渲染后的图像（缓存）
+    # text（text）
     rendered: Optional[Image.Image] = None
 
 
 @dataclass
 class DynamicCanvasConfig:
-    """动态画布配置"""
-    # Patch 尺寸（与 vision encoder 的输入对齐）
+    """text"""
+    # Patch text（text vision encoder text）
     patch_size: int = 640
 
-    # 内容边距
+    # text
     padding: int = 20
-    # 内容间距
+    # text
     content_gap: int = 15
 
-    # 文本渲染配置
+    # text
     font_size: int = 20
     font_color: Tuple[int, int, int] = (0, 0, 0)
     line_spacing: float = 1.3
 
-    # 背景色
+    # text
     background_color: Tuple[int, int, int] = (255, 255, 255)
 
-    # 是否在 patch 边界显示标记（调试用）
+    # text patch text（text）
     show_patch_boundary: bool = False
 
 
 @dataclass
 class Patch:
-    """单个 Patch"""
+    """text Patch"""
     index: int
     image: Image.Image
-    # 该 patch 包含的内容摘要
+    # text patch text
     content_summary: List[str] = field(default_factory=list)
-    # 填充状态
+    # text
     is_full: bool = False
-    # 剩余空间
+    # text
     remaining_height: int = 0
 
 
 class DynamicCanvas:
     """
-    动态画布
+    text
 
-    核心工作流：
-    1. 创建初始 patch
-    2. 添加内容时，检查当前 patch 是否能容纳
-    3. 如果能容纳，渲染到当前 patch
-    4. 如果不能容纳，创建新 patch 继续渲染
-    5. 最终输出 patch 列表
+    text：
+    1. text patch
+    2. text，text patch text
+    3. text，text patch
+    4. text，text patch text
+    5. text patch text
 
-    使用示例：
+    text：
     ```python
     canvas = DynamicCanvas(DynamicCanvasConfig(patch_size=640))
 
-    # 添加内容
-    canvas.add_text("标题", font_size=32)
-    canvas.add_text("这是一段很长的文本...")
+    # text
+    canvas.add_text("text", font_size=32)
+    canvas.add_text("text...")
     canvas.add_image(some_image)
     canvas.add_table(table_data)
 
-    # 获取所有 patches
+    # text patches
     patches = canvas.get_patches()
 
-    # 直接用于 vision token 提取
+    # text vision token text
     for patch in patches:
         tokens = extractor.extract_single(patch.image)
     ```
     """
 
-    # 字体候选列表
+    # text
     FONT_CANDIDATES = [
         "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
         "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
@@ -119,32 +119,32 @@ class DynamicCanvas:
     def __init__(self, config: Optional[DynamicCanvasConfig] = None):
         self.config = config or DynamicCanvasConfig()
 
-        # Patch 列表
+        # Patch text
         self.patches: List[Patch] = []
 
-        # 当前 patch 索引和游标位置
+        # text patch text
         self._current_patch_idx: int = -1
-        self._cursor_y: int = 0  # 当前 patch 中的 y 位置
+        self._cursor_y: int = 0  # text patch text y text
 
-        # 字体缓存
+        # text
         self._font_cache: Dict[int, ImageFont.FreeTypeFont] = {}
         self._font_path = self._find_font()
 
-        # 统计
+        # text
         self._total_content_blocks = 0
 
-        # 创建第一个 patch
+        # text patch
         self._create_new_patch()
 
     def _find_font(self) -> Optional[str]:
-        """查找可用字体"""
+        """text"""
         for fp in self.FONT_CANDIDATES:
             if os.path.exists(fp):
                 return fp
         return None
 
     def _get_font(self, size: int) -> ImageFont.FreeTypeFont:
-        """获取字体"""
+        """text"""
         if size not in self._font_cache:
             if self._font_path:
                 try:
@@ -156,19 +156,19 @@ class DynamicCanvas:
         return self._font_cache[size]
 
     def _create_new_patch(self) -> Patch:
-        """创建新的 patch"""
-        # 保存当前 patch 的实际剩余高度（供 get_compact_image 使用）
+        """text patch"""
+        # text patch text（text get_compact_image text）
         if self.patches:
             self.current_patch.remaining_height = self.available_height
 
         size = self.config.patch_size
         image = Image.new('RGB', (size, size), self.config.background_color)
 
-        # 如果启用边界显示
+        # text
         if self.config.show_patch_boundary:
             draw = ImageDraw.Draw(image)
             draw.rectangle([0, 0, size-1, size-1], outline=(200, 200, 200), width=2)
-            # 显示 patch 编号
+            # text patch text
             font = self._get_font(12)
             draw.text((5, 5), f"P{len(self.patches)}", fill=(150, 150, 150), font=font)
 
@@ -185,20 +185,20 @@ class DynamicCanvas:
 
     @property
     def current_patch(self) -> Patch:
-        """当前 patch"""
+        """text patch"""
         return self.patches[self._current_patch_idx]
 
     @property
     def available_height(self) -> int:
-        """当前 patch 剩余可用高度"""
+        """text patch text"""
         return self.config.patch_size - self._cursor_y - self.config.padding
 
     @property
     def content_width(self) -> int:
-        """内容可用宽度"""
+        """text"""
         return self.config.patch_size - 2 * self.config.padding
 
-    # ==================== 添加内容 ====================
+    # ==================== text ====================
 
     def add_text(
         self,
@@ -208,41 +208,41 @@ class DynamicCanvas:
         bold: bool = False
     ) -> int:
         """
-        添加文本
+        text
 
         Args:
-            text: 文本内容
-            font_size: 字体大小
-            font_color: 字体颜色
-            bold: 是否加粗（暂不支持，预留）
+            text: text
+            font_size: text
+            font_color: text
+            bold: text（text，text）
 
         Returns:
-            使用的 patch 数量
+            text patch text
         """
         font_size = font_size or self.config.font_size
         font_color = font_color or self.config.font_color
         font = self._get_font(font_size)
 
-        # 计算行高
+        # text
         line_height = int(font_size * self.config.line_spacing)
 
-        # 文本换行
+        # text
         lines = self._wrap_text(text, font)
 
         patches_used = 0
         start_patch = self._current_patch_idx
 
         for line in lines:
-            # 检查当前 patch 是否能容纳这一行
+            # text patch text
             if self.available_height < line_height:
-                # 标记当前 patch 已满
+                # text patch text
                 self.current_patch.is_full = True
                 self.current_patch.remaining_height = self.available_height
-                # 创建新 patch
+                # text patch
                 self._create_new_patch()
                 patches_used += 1
 
-            # 渲染这一行
+            # text
             draw = ImageDraw.Draw(self.current_patch.image)
             draw.text(
                 (self.config.padding, self._cursor_y),
@@ -252,10 +252,10 @@ class DynamicCanvas:
             )
             self._cursor_y += line_height
 
-        # 添加内容间距
+        # text
         self._cursor_y += self.config.content_gap
 
-        # 更新统计
+        # text
         self._total_content_blocks += 1
         self.current_patch.content_summary.append(f"text:{len(text)}chars")
 
@@ -269,21 +269,21 @@ class DynamicCanvas:
         caption: Optional[str] = None
     ) -> int:
         """
-        添加图像
+        text
 
         Args:
             image: PIL Image
-            max_width: 最大宽度（默认为内容宽度）
-            max_height: 最大高度（默认为 patch 高度的一半）
-            caption: 图片说明
+            max_width: text（text）
+            max_height: text（text patch text）
+            caption: text
 
         Returns:
-            使用的 patch 数量
+            text patch text
         """
         max_width = max_width or self.content_width
         max_height = max_height or (self.config.patch_size // 2)
 
-        # 缩放图像
+        # text
         img_w, img_h = image.size
         scale = min(max_width / img_w, max_height / img_h, 1.0)
         new_w = int(img_w * scale)
@@ -292,13 +292,13 @@ class DynamicCanvas:
         if scale < 1.0:
             image = image.resize((new_w, new_h), Image.Resampling.LANCZOS)
 
-        # 计算需要的总高度
+        # text
         total_height = new_h
         if caption:
             caption_height = int(self.config.font_size * self.config.line_spacing)
             total_height += caption_height + 5
 
-        # 检查是否需要新 patch
+        # text patch
         patches_used = 0
         start_patch = self._current_patch_idx
 
@@ -307,12 +307,12 @@ class DynamicCanvas:
             self._create_new_patch()
             patches_used += 1
 
-        # 粘贴图像
-        x = self.config.padding + (self.content_width - new_w) // 2  # 居中
+        # text
+        x = self.config.padding + (self.content_width - new_w) // 2  # text
         self.current_patch.image.paste(image, (x, self._cursor_y))
         self._cursor_y += new_h
 
-        # 添加说明
+        # text
         if caption:
             draw = ImageDraw.Draw(self.current_patch.image)
             font = self._get_font(self.config.font_size - 2)
@@ -333,7 +333,7 @@ class DynamicCanvas:
     def _truncate_text_to_width(
         self, text: str, font: ImageFont.FreeTypeFont, max_width: int
     ) -> str:
-        """将文本截断到指定像素宽度，超出部分用省略号替换"""
+        """text，text"""
         if max_width <= 0:
             return ""
         bbox = font.getbbox(text)
@@ -341,7 +341,7 @@ class DynamicCanvas:
         if text_width <= max_width:
             return text
 
-        # 二分查找合适的截断位置
+        # text
         ellipsis = ".."
         ell_bbox = font.getbbox(ellipsis)
         ell_width = ell_bbox[2] - ell_bbox[0]
@@ -369,22 +369,22 @@ class DynamicCanvas:
         cell_padding: int = 8
     ) -> int:
         """
-        添加表格
+        text
 
         Args:
-            data: 表格数据 [[row1], [row2], ...]
-            headers: 表头
-            cell_padding: 单元格内边距
+            data: text [[row1], [row2], ...]
+            headers: text
+            cell_padding: text
 
         Returns:
-            使用的 patch 数量
+            text patch text
         """
         if not data:
             return 0
 
         font = self._get_font(self.config.font_size - 2)
 
-        # 计算列宽
+        # text
         all_rows = ([headers] if headers else []) + data
         num_cols = max(len(row) for row in all_rows)
 
@@ -396,20 +396,20 @@ class DynamicCanvas:
                     cell_width = (bbox[2] - bbox[0]) + 2 * cell_padding
                     col_widths[i] = max(col_widths[i], cell_width)
 
-        # 检查表格是否太宽，等比缩放列宽
+        # text，text
         total_width = sum(col_widths)
         if total_width > self.content_width:
             scale = self.content_width / total_width
             col_widths = [max(int(w * scale), 2 * cell_padding + 10) for w in col_widths]
-            # 确保总宽度不超出
+            # text
             while sum(col_widths) > self.content_width:
                 widest = max(range(num_cols), key=lambda i: col_widths[i])
                 col_widths[widest] -= 1
 
-        # 行高
+        # text
         row_height = int(self.config.font_size * self.config.line_spacing) + 2 * cell_padding
 
-        # 渲染表格
+        # text
         patches_used = 0
         start_patch = self._current_patch_idx
 
@@ -417,7 +417,7 @@ class DynamicCanvas:
         is_header = True if headers else False
 
         for row_idx, row in enumerate(rows_to_render):
-            # 检查是否需要新 patch
+            # text patch
             if self.available_height < row_height:
                 self.current_patch.is_full = True
                 self._create_new_patch()
@@ -425,7 +425,7 @@ class DynamicCanvas:
 
             draw = ImageDraw.Draw(self.current_patch.image)
 
-            # 绘制单元格
+            # text
             x = self.config.padding
             for col_idx, cell in enumerate(row):
                 if col_idx >= len(col_widths):
@@ -433,14 +433,14 @@ class DynamicCanvas:
 
                 cell_width = col_widths[col_idx]
 
-                # 绘制边框
+                # text
                 draw.rectangle(
                     [x, self._cursor_y, x + cell_width, self._cursor_y + row_height],
                     outline=(200, 200, 200),
                     fill=(240, 240, 240) if (is_header and row_idx == 0) else None
                 )
 
-                # 截断文本到列宽内，避免溢出
+                # text，text
                 avail_text_width = cell_width - 2 * cell_padding
                 cell_text = self._truncate_text_to_width(
                     str(cell), font, avail_text_width
@@ -470,18 +470,18 @@ class DynamicCanvas:
         max_height: Optional[int] = None,
     ) -> int:
         """
-        添加 HTML/Markdown 渲染内容
+        text HTML/Markdown text
 
-        使用 HtmlRenderer 将内容渲染为图像后放入画布。
-        Playwright 不可用时 fallback 到 add_text()。
+        text HtmlRenderer text。
+        Playwright text fallback text add_text()。
 
         Args:
-            content: Markdown、HTML 或纯文本
-            content_type: "markdown", "html", 或 "text"
-            max_height: 渲染图像最大高度
+            content: Markdown、HTML text
+            content_type: "markdown", "html", text "text"
+            max_height: text
 
         Returns:
-            使用的 patch 数量
+            text patch text
         """
         try:
             from .renderers.html_renderer import HtmlRenderer, HtmlStyle
@@ -490,7 +490,7 @@ class DynamicCanvas:
             renderer = HtmlRenderer(style=style)
             img = renderer.render(content, content_type)
 
-            # 缩放到 content_width
+            # text content_width
             if img.width != self.content_width:
                 scale = self.content_width / img.width
                 new_h = int(img.height * scale)
@@ -504,7 +504,7 @@ class DynamicCanvas:
                 max_height=max_height,
             )
         except (ImportError, Exception):
-            # Fallback: 纯文本渲染
+            # Fallback: text
             return self.add_text(content)
 
     def add_tall_image(
@@ -516,36 +516,36 @@ class DynamicCanvas:
         label_height: int = 22,
     ) -> int:
         """
-        智能分段裁切长图，横向排列
+        text，text
 
-        当图片纵横比 > 2.0 时，将长图等分为多段，
-        每段等比缩放后横向排列在画布中，底部标注段号。
-        这样能最大化利用画布空间，保持内容可读。
+        text > 2.0 text，text，
+        text，text。
+        text，text。
 
-        例：596×5107 信息图 → 3 段横排，每段 196×559，
-        总占 600×579，几乎填满一个 640×640 patch。
+        text：596×5107 text → 3 text，text 196×559，
+        text 600×579，text 640×640 patch。
 
         Args:
-            image: PIL Image（长图）
-            max_sections: 最大段数（控制 token 预算）
-            overlap: 段间重叠像素（避免切断重要内容）
-            gap: 横排段间间距（像素）
-            label_height: 段号标签高度（像素）
+            image: PIL Image（text）
+            max_sections: text（text token text）
+            overlap: text（text）
+            gap: text（text）
+            label_height: text（text）
 
         Returns:
-            使用的 patch 数量
+            text patch text
         """
         img_w, img_h = image.size
         aspect_ratio = img_h / img_w if img_w > 0 else 1
 
-        # 纵横比不高，直接作为普通图像添加
+        # text，text
         if aspect_ratio <= 2.0:
             return self.add_image(image)
 
-        # 根据纵横比决定分段数（2~max_sections）
+        # text（2~max_sections）
         n_sections = min(max(2, round(aspect_ratio / 2.5)), max_sections)
 
-        # 计算每段在原图中的裁切区域
+        # text
         section_h = (img_h + (n_sections - 1) * overlap) // n_sections
         effective_step = section_h - overlap
 
@@ -555,13 +555,13 @@ class DynamicCanvas:
             y_end = min(y_start + section_h, img_h)
             sections.append(image.crop((0, y_start, img_w, y_end)))
 
-        # 计算横排布局：每段等宽排列
+        # text：text
         avail_w = self.content_width - (n_sections - 1) * gap
         per_w = avail_w // n_sections
         scale = per_w / img_w
         per_h = int(section_h * scale)
 
-        # 组装横排图像（各段 + 底部标签）
+        # text（text + text）
         total_w = n_sections * per_w + (n_sections - 1) * gap
         total_h = per_h + label_height
         composed = Image.new("RGB", (total_w, total_h), (255, 255, 255))
@@ -570,16 +570,16 @@ class DynamicCanvas:
         draw = ImageDraw.Draw(composed)
 
         for i, sec in enumerate(sections):
-            # 缩放段落
+            # text
             sec_h_actual = sec.size[1]
             scaled_h = int(sec_h_actual * scale)
             sec_resized = sec.resize((per_w, scaled_h), Image.Resampling.LANCZOS)
 
-            # 粘贴到横排位置
+            # text
             x = i * (per_w + gap)
             composed.paste(sec_resized, (x, 0))
 
-            # 底部段号标签
+            # text
             label = f"{i + 1}/{n_sections}"
             bbox = font.getbbox(label)
             lw = bbox[2] - bbox[0]
@@ -587,7 +587,7 @@ class DynamicCanvas:
             ly = per_h + 3
             draw.text((lx, ly), label, fill=(120, 120, 120), font=font)
 
-        # 作为单张图添加到画布
+        # text
         return self.add_image(
             composed,
             max_width=self.content_width,
@@ -595,7 +595,7 @@ class DynamicCanvas:
         )
 
     def add_separator(self, style: str = "line") -> int:
-        """添加分隔符"""
+        """text"""
         height = 20 if style == "line" else 40
 
         if self.available_height < height:
@@ -619,10 +619,10 @@ class DynamicCanvas:
         self._cursor_y += height
         return 0
 
-    # ==================== 工具方法 ====================
+    # ==================== text ====================
 
     def _wrap_text(self, text: str, font: ImageFont.FreeTypeFont) -> List[str]:
-        """文本换行（按像素宽度）"""
+        """text（text）"""
         lines = []
         paragraphs = text.split('\n')
 
@@ -652,27 +652,27 @@ class DynamicCanvas:
 
         return lines
 
-    # ==================== 输出 ====================
+    # ==================== text ====================
 
     def get_patches(self) -> List[Patch]:
-        """获取所有 patches"""
-        # 更新最后一个 patch 的剩余空间
+        """text patches"""
+        # text patch text
         self.current_patch.remaining_height = self.available_height
         return self.patches
 
     def get_images(self) -> List[Image.Image]:
-        """获取所有 patch 图像"""
+        """text patch text"""
         return [p.image for p in self.patches]
 
     def get_combined_image(self, direction: str = "vertical") -> Image.Image:
         """
-        获取合并后的图像
+        text
 
         Args:
-            direction: "vertical" 或 "horizontal"
+            direction: "vertical" text "horizontal"
 
         Returns:
-            合并后的图像
+            text
         """
         if not self.patches:
             return Image.new('RGB', (self.config.patch_size, self.config.patch_size), self.config.background_color)
@@ -698,13 +698,13 @@ class DynamicCanvas:
 
     def get_compact_image(self) -> Image.Image:
         """
-        获取紧凑合并图像（无多余空白）
+        text（text）
 
-        宽度固定为 patch_size，高度根据实际内容裁剪。
-        已满的 patch 裁剪掉底部空白，最后一个 patch 裁剪到光标位置。
+        text patch_size，text。
+        text patch text，text patch text。
 
         Returns:
-            紧凑的 RGB 图像
+            text RGB text
         """
         if not self.patches:
             return Image.new(
@@ -714,18 +714,18 @@ class DynamicCanvas:
 
         width = self.config.patch_size
 
-        # 计算每个 patch 的实际内容高度
+        # text patch text
         cropped = []
         for i, patch in enumerate(self.patches):
             if i == self._current_patch_idx:
-                # 最后一个活跃 patch：裁剪到光标位置 + padding
+                # text patch：text + padding
                 h = self._cursor_y + self.config.padding
             elif patch.is_full:
-                # 已满 patch：裁剪掉底部剩余空白
+                # text patch：text
                 h = self.config.patch_size - patch.remaining_height
             else:
                 h = self.config.patch_size
-            h = max(h, self.config.padding * 2)  # 最小高度
+            h = max(h, self.config.padding * 2)  # text
             cropped.append(patch.image.crop((0, 0, width, h)))
 
         total_h = sum(c.height for c in cropped)
@@ -738,7 +738,7 @@ class DynamicCanvas:
         return combined
 
     def get_statistics(self) -> Dict[str, Any]:
-        """获取统计信息"""
+        """text"""
         total_used = sum(
             self.config.patch_size - p.remaining_height
             for p in self.patches
@@ -762,7 +762,7 @@ class DynamicCanvas:
         }
 
     def clear(self):
-        """清空画布"""
+        """text"""
         self.patches = []
         self._current_patch_idx = -1
         self._cursor_y = 0
@@ -776,15 +776,15 @@ def create_dynamic_canvas(
     padding: int = 20
 ) -> DynamicCanvas:
     """
-    快速创建动态画布
+    text
 
     Args:
-        patch_size: Patch 尺寸（建议与 vision encoder 输入对齐）
-        font_size: 默认字体大小
-        padding: 边距
+        patch_size: Patch text（text vision encoder text）
+        font_size: text
+        padding: text
 
     Returns:
-        DynamicCanvas 实例
+        DynamicCanvas text
     """
     config = DynamicCanvasConfig(
         patch_size=patch_size,

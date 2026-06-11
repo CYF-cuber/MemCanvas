@@ -1,0 +1,19 @@
+# Copy to api.yaml or set environment variables. Do not commit real keys.
+
+openai:
+  api_key_env: OPENAI_API_KEY
+  base_url_env: OPENAI_BASE_URL
+  model: gpt-4o-mini
+
+anthropic:
+  api_key_env: ANTHROPIC_API_KEY
+  model: claude-sonnet-4-6
+
+dashscope:
+  api_key_env: DASHSCOPE_API_KEY
+  base_url_env: DASHSCOPE_BASE_URL
+  model: qwen-vl-plus
+
+huggingface:
+  token_env: HF_TOKEN
+  cache_dir_env: HF_HOME

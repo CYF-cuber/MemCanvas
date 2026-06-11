@@ -1,0 +1,6 @@
+dataset: chartqa
+input: ./data/chartqa/train.jsonl
+image_root: ./data/chartqa/charts
+canvas_dir: ./outputs/chartqa/canvases
+embedding_dir: ./outputs/chartqa/embeddings
+metrics: relaxed_accuracy

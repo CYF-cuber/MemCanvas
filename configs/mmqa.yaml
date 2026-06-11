@@ -1,0 +1,6 @@
+dataset: mmqa
+input: ./data/mmqa/train.jsonl
+image_root: ./data/mmqa/images
+canvas_dir: ./outputs/mmqa/canvases
+embedding_dir: ./outputs/mmqa/embeddings
+metrics: [exact_match, f1]

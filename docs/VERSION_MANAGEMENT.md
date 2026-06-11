@@ -1,69 +1,68 @@
-# 版本管理规则
+# Version management
 
-## 当前版本定义
+## Current release
 
-- 仓库根目录代表“当前整理后的主版本”。
-- `versions/` 代表“历史代码快照版本”。
+The repository root is the current public release. The main maintained directories are:
 
-## 何时只用 git commit
+- `memcanvas/`
+- `scripts/`
+- `configs/`
+- `docs/`
+- `data/classifications/`
+- `reports/`
 
-以下情况只需要正常提交：
+## When a git commit is enough
 
-- 小修复
-- README 更新
-- 单个脚本参数调整
-- 不改变目录结构的小功能开发
+Use a normal commit for:
 
-## 何时创建新的 `versions/` 文件夹
+- small bug fixes
+- README or documentation updates
+- single-script parameter changes
+- small features that do not change the repository structure
 
-以下情况建议新建一个版本快照目录：
+## When to create a `versions/` snapshot
 
-- 代码组织方式发生明显变化
-- 从一个大工作区切换到另一个大工作区
-- 新增一组独立实验管线
-- 需要保留“当时那套脚本”的完整上下文
+Create a historical snapshot only when you need to preserve an older experimental workspace for provenance, for example:
 
-## 目录命名建议
+- a major repository reorganization
+- migration from a large external workspace
+- an independent experimental pipeline that should remain auditable
 
-统一格式：
+## Naming convention
 
 ```text
-versions/v<序号>_<版本说明>
+versions/v<index>_<description>
 ```
 
-示例：
+Examples:
 
 - `versions/v1_workspace_memcanvas0402`
 - `versions/v2_workspace_codex`
-- `versions/v3_multimodal_refactor`
+- `versions/v3_public_release`
 
-## git tag 建议
-
-每次形成可识别的大版本时，同时打 tag：
+## Suggested git tags
 
 ```bash
 git tag v1-workspace-memcanvas0402
 git tag v2-workspace-codex
-git tag v3-clean-main-repo
+git tag v3-public-release
 ```
 
-## 提交信息建议
-
-建议使用下面的风格：
+## Suggested commit messages
 
 ```text
-init: bootstrap private MemCanvas repository
-docs: add repository structure and github guide
+init: bootstrap MemCanvas repository
+docs: add public release documentation
 refactor: normalize package imports in memcanvas core
-archive: add memcanvas0402 and codex code snapshots
+archive: add historical workspace snapshot
 ```
 
-## 不建议提交的内容
+## Do not commit
 
-- 模型权重
-- 训练输出
-- 数据缓存
-- 本地临时日志
-- 评测结果大文件
+- model weights
+- fine-tuning, RL, or generated training artifacts
+- data caches
+- local temporary logs
+- large evaluation outputs
 
-这些内容应该留在本地大目录或对象存储，不进入私有 git 仓。
+Keep these artifacts in local storage or object storage rather than git.

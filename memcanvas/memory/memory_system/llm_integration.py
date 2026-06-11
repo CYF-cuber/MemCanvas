@@ -1,12 +1,12 @@
 """
-LLM Integration - 记忆与LLM集成模块
+LLM Integration - textLLMtext
 
-将检索到的记忆注入到LLM中使用。
+textLLMtext。
 
-支持三种方式：
-1. VLM方式：直接将画布图像传给视觉语言模型（如Qwen2-VL）
-2. Embedding注入：将vision tokens投影后注入LLM embedding层
-3. 文本转换：用VLM生成记忆的文本描述，传给纯文本LLM
+text：
+1. VLMtext：text（textQwen2-VL）
+2. Embeddingtext：textvision tokenstextLLM embeddingtext
+3. text：textVLMtext，textLLM
 """
 
 from dataclasses import dataclass, field
@@ -18,55 +18,55 @@ from PIL import Image
 
 @dataclass
 class LLMIntegrationConfig:
-    """LLM集成配置"""
-    # 集成模式: vlm, embedding_inject, text_convert
+    """LLMtext"""
+    # text: vlm, embedding_inject, text_convert
     mode: str = "vlm"
-    # VLM模型名称
+    # VLMtext
     vlm_model: str = "Qwen/Qwen2-VL-7B-Instruct"
-    # 文本LLM模型名称
+    # textLLMtext
     llm_model: str = "Qwen/Qwen2.5-7B-Instruct"
-    # 设备
+    # text
     device: str = "cuda"
-    # 最大记忆数量
+    # maximum number of memories
     max_memories: int = 5
-    # 最大token数
+    # texttokentext
     max_tokens: int = 4096
-    # 是否保存原始画布（用于VLM模式）
+    # text（textVLMtext）
     save_canvas: bool = True
 
 
 @dataclass
 class MemoryContext:
-    """记忆上下文，用于传递给LLM"""
-    # 记忆ID列表
+    """text，textLLM"""
+    # memory IDtext
     memory_ids: List[str]
-    # 画布图像列表（VLM模式）
+    # text（VLMtext）
     images: Optional[List[Image.Image]] = None
-    # Vision tokens列表（embedding注入模式）
+    # Vision tokenstext（embeddingtext）
     vision_tokens: Optional[List[np.ndarray]] = None
-    # 文本描述列表（文本转换模式）
+    # text（text）
     text_descriptions: Optional[List[str]] = None
-    # 元数据
+    # text
     metadata: List[Dict[str, Any]] = field(default_factory=list)
 
 
 class MemoryToLLM:
     """
-    记忆到LLM的桥接器
+    textLLMtext
 
-    将检索到的记忆转换为LLM可用的格式。
+    textLLMtext。
 
-    使用示例：
+    text：
     ```python
-    # 方式1: VLM（推荐，如Qwen2-VL）
+    # text1: VLM（text，textQwen2-VL）
     bridge = MemoryToLLM(mode="vlm")
     context = bridge.prepare_context(retrieval_results)
-    response = bridge.query_vlm("描述这些记忆的内容", context)
+    response = bridge.query_vlm("text", context)
 
-    # 方式2: 文本转换（给纯文本LLM用）
+    # text2: text（textLLMtext）
     bridge = MemoryToLLM(mode="text_convert")
     context = bridge.prepare_context(retrieval_results)
-    response = bridge.query_llm("根据这些记忆回答问题", context)
+    response = bridge.query_llm("text", context)
     ```
     """
 
@@ -85,13 +85,13 @@ class MemoryToLLM:
         generate_descriptions: bool = False
     ) -> MemoryContext:
         """
-        准备记忆上下文
+        text
 
         Args:
-            retrieval_results: 检索结果列表（RetrievalResult）
-            include_images: 是否包含图像
-            include_tokens: 是否包含vision tokens
-            generate_descriptions: 是否生成文本描述
+            retrieval_results: text（RetrievalResult）
+            include_images: text
+            include_tokens: textvision tokens
+            generate_descriptions: text
 
         Returns:
             MemoryContext
@@ -106,7 +106,7 @@ class MemoryToLLM:
             memory = result.memory
             memory_ids.append(result.memory_id)
 
-            # 收集元数据
+            # text
             meta_info = {
                 "memory_id": result.memory_id,
                 "score": result.score,
@@ -116,18 +116,18 @@ class MemoryToLLM:
             }
             metadata.append(meta_info)
 
-            # 收集vision tokens
+            # textvision tokens
             if include_tokens:
                 vision_tokens.append(memory.tokens)
 
-            # 如果需要图像，从存储路径加载
-            # 注意：需要在存储时保存原始画布
+            # text，text
+            # text：text
             if include_images:
                 canvas_image = self._load_canvas_image(result.memory_id)
                 if canvas_image:
                     images.append(canvas_image)
 
-        # 生成文本描述
+        # text
         if generate_descriptions:
             text_descriptions = self._generate_descriptions(images or [], metadata)
 
@@ -140,9 +140,9 @@ class MemoryToLLM:
         )
 
     def _load_canvas_image(self, memory_id: str) -> Optional[Image.Image]:
-        """加载画布图像（需要在存储时同时保存）"""
-        # 这里需要实现从存储加载原始画布的逻辑
-        # 暂时返回None，后续可以扩展
+        """text（text）"""
+        # text
+        # textNone，text
         return None
 
     def _generate_descriptions(
@@ -150,31 +150,31 @@ class MemoryToLLM:
         images: List[Image.Image],
         metadata: List[Dict]
     ) -> List[str]:
-        """使用VLM生成图像描述"""
+        """textVLMtext"""
         if not images:
-            return [f"记忆 {m['memory_id']}，创建于 {m['created_at']}" for m in metadata]
+            return [f"text {m['memory_id']}，text {m['created_at']}" for m in metadata]
 
         descriptions = []
         for img, meta in zip(images, metadata):
             desc = self._describe_image(img)
-            descriptions.append(f"[记忆 {meta['memory_id']}]\n{desc}")
+            descriptions.append(f"[text {meta['memory_id']}]\n{desc}")
 
         return descriptions
 
     def _describe_image(self, image: Image.Image) -> str:
-        """使用VLM描述单张图像"""
+        """textVLMtext"""
         self._init_vlm()
 
         if self._vlm_model is None:
-            return "（无法生成描述）"
+            return "（text）"
 
-        # 使用Qwen2-VL生成描述
+        # textQwen2-VLtext
         messages = [
             {
                 "role": "user",
                 "content": [
                     {"type": "image", "image": image},
-                    {"type": "text", "text": "请详细描述这张图片的内容，包括文字、图表、布局等所有信息。"}
+                    {"type": "text", "text": "text，text、text、text。"}
                 ]
             }
         ]
@@ -196,9 +196,9 @@ class MemoryToLLM:
 
             return output_text
         except Exception as e:
-            return f"（描述生成失败: {e}）"
+            return f"（text: {e}）"
 
-    # ==================== VLM 模式 ====================
+    # ==================== VLM text ====================
 
     def query_vlm(
         self,
@@ -207,35 +207,35 @@ class MemoryToLLM:
         system_prompt: Optional[str] = None
     ) -> str:
         """
-        使用VLM（如Qwen2-VL）处理记忆和问题
+        textVLM（textQwen2-VL）text
 
         Args:
-            question: 用户问题
-            context: 记忆上下文
-            system_prompt: 系统提示
+            question: text
+            context: text
+            system_prompt: text
 
         Returns:
-            模型回答
+            text
         """
         self._init_vlm()
 
         if self._vlm_model is None:
-            return "VLM模型未加载"
+            return "VLMtext"
 
-        # 构建消息
+        # textmessage
         content = []
 
-        # 添加图像
+        # text
         if context.images:
             for i, img in enumerate(context.images):
                 content.append({"type": "image", "image": img})
                 content.append({
                     "type": "text",
-                    "text": f"[记忆 {i+1}，相关度: {context.metadata[i]['score']:.2f}]"
+                    "text": f"[text {i+1}，text: {context.metadata[i]['score']:.2f}]"
                 })
 
-        # 添加问题
-        content.append({"type": "text", "text": f"\n根据以上记忆，回答问题：{question}"})
+        # text
+        content.append({"type": "text", "text": f"\ntext，text：{question}"})
 
         messages = []
         if system_prompt:
@@ -262,9 +262,9 @@ class MemoryToLLM:
 
             return response
         except Exception as e:
-            return f"生成失败: {e}"
+            return f"text: {e}"
 
-    # ==================== 文本LLM模式 ====================
+    # ==================== textLLMtext ====================
 
     def query_llm(
         self,
@@ -273,40 +273,40 @@ class MemoryToLLM:
         system_prompt: Optional[str] = None
     ) -> str:
         """
-        使用纯文本LLM处理记忆和问题
+        textLLMtext
 
-        需要先将记忆转换为文本描述。
+        text。
 
         Args:
-            question: 用户问题
-            context: 记忆上下文（需要text_descriptions）
-            system_prompt: 系统提示
+            question: text
+            context: text（texttext_descriptions）
+            system_prompt: text
 
         Returns:
-            模型回答
+            text
         """
         self._init_llm()
 
         if self._llm_model is None:
-            return "LLM模型未加载"
+            return "LLMtext"
 
-        # 构建提示
+        # text
         memory_text = ""
         if context.text_descriptions:
             for i, desc in enumerate(context.text_descriptions):
-                memory_text += f"\n--- 记忆 {i+1} ---\n{desc}\n"
+                memory_text += f"\n--- text {i+1} ---\n{desc}\n"
         else:
-            # 使用元数据
+            # text
             for i, meta in enumerate(context.metadata):
-                memory_text += f"\n--- 记忆 {i+1} ---\n"
+                memory_text += f"\n--- text {i+1} ---\n"
                 memory_text += f"ID: {meta['memory_id']}\n"
-                memory_text += f"创建时间: {meta['created_at']}\n"
-                memory_text += f"相关度: {meta['score']:.2f}\n"
+                memory_text += f"text: {meta['created_at']}\n"
+                memory_text += f"text: {meta['score']:.2f}\n"
 
-        prompt = f"""以下是从记忆库中检索到的相关记忆：
+        prompt = f"""text：
 {memory_text}
 
-请根据以上记忆，回答用户的问题：{question}"""
+text，text：{question}"""
 
         messages = []
         if system_prompt:
@@ -329,12 +329,12 @@ class MemoryToLLM:
 
             return response
         except Exception as e:
-            return f"生成失败: {e}"
+            return f"text: {e}"
 
-    # ==================== 初始化模型 ====================
+    # ==================== text ====================
 
     def _init_vlm(self):
-        """初始化VLM"""
+        """textVLM"""
         if self._vlm_model is not None:
             return
 
@@ -342,7 +342,7 @@ class MemoryToLLM:
             from transformers import Qwen2VLForConditionalGeneration, AutoProcessor
             import torch
 
-            print(f"加载VLM: {self.config.vlm_model}")
+            print(f"textVLM: {self.config.vlm_model}")
             self._vlm_model = Qwen2VLForConditionalGeneration.from_pretrained(
                 self.config.vlm_model,
                 torch_dtype=torch.bfloat16,
@@ -351,11 +351,11 @@ class MemoryToLLM:
             self._vlm_processor = AutoProcessor.from_pretrained(self.config.vlm_model)
 
         except Exception as e:
-            print(f"VLM加载失败: {e}")
+            print(f"VLMtext: {e}")
             self._vlm_model = None
 
     def _init_llm(self):
-        """初始化文本LLM"""
+        """textLLM"""
         if self._llm_model is not None:
             return
 
@@ -363,7 +363,7 @@ class MemoryToLLM:
             from transformers import AutoModelForCausalLM, AutoTokenizer
             import torch
 
-            print(f"加载LLM: {self.config.llm_model}")
+            print(f"textLLM: {self.config.llm_model}")
             self._llm_model = AutoModelForCausalLM.from_pretrained(
                 self.config.llm_model,
                 torch_dtype=torch.bfloat16,
@@ -372,11 +372,11 @@ class MemoryToLLM:
             self._llm_tokenizer = AutoTokenizer.from_pretrained(self.config.llm_model)
 
         except Exception as e:
-            print(f"LLM加载失败: {e}")
+            print(f"LLMtext: {e}")
             self._llm_model = None
 
 
-# ==================== 便捷函数 ====================
+# ==================== text ====================
 
 def create_memory_bridge(
     mode: Literal["vlm", "text_convert"] = "vlm",
@@ -384,17 +384,17 @@ def create_memory_bridge(
     device: str = "cuda"
 ) -> MemoryToLLM:
     """
-    快速创建记忆桥接器
+    text
 
     Args:
-        mode: 模式
-            - "vlm": 使用视觉语言模型（推荐Qwen2-VL）
-            - "text_convert": 转换为文本后使用纯文本LLM
-        model_name: 模型名称
-        device: 设备
+        mode: text
+            - "vlm": text（textQwen2-VL）
+            - "text_convert": textLLM
+        model_name: text
+        device: text
 
     Returns:
-        MemoryToLLM实例
+        MemoryToLLMtext
     """
     config = LLMIntegrationConfig(
         mode=mode,
@@ -410,23 +410,23 @@ def create_memory_bridge(
     return MemoryToLLM(config)
 
 
-# ==================== 完整示例类 ====================
+# ==================== text ====================
 
 class MemoryAugmentedQA:
     """
-    记忆增强的问答系统
+    text
 
-    完整的端到端流程：
-    1. 接收用户问题
-    2. 将问题编码为查询向量
-    3. 检索相关记忆
-    4. 将记忆和问题传给LLM
-    5. 返回答案
+    text：
+    1. text
+    2. textvector
+    3. text
+    4. textLLM
+    5. text
 
-    使用示例：
+    text：
     ```python
     qa = MemoryAugmentedQA(manager, mode="vlm")
-    answer = qa.ask("上次会议讨论了什么？")
+    answer = qa.ask("text？")
     ```
     """
 
@@ -440,14 +440,14 @@ class MemoryAugmentedQA:
         self.mode = mode
         self.device = device
 
-        # 文本编码器
+        # text
         from .text_query import TextQueryEncoder, TextQueryConfig
         self.text_encoder = TextQueryEncoder(TextQueryConfig(
             encode_mode="clip_text",
             device=device
         ))
 
-        # 记忆桥接器
+        # text
         self.bridge = MemoryToLLM(LLMIntegrationConfig(
             mode=mode,
             device=device
@@ -460,20 +460,20 @@ class MemoryAugmentedQA:
         system_prompt: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        提问并获取答案
+        text
 
         Args:
-            question: 用户问题
-            top_k: 检索的记忆数量
-            system_prompt: 系统提示
+            question: text
+            top_k: text
+            system_prompt: text
 
         Returns:
-            包含答案和检索信息的字典
+            text
         """
-        # 1. 编码问题
+        # 1. text
         query_vector = self.text_encoder.encode(question)
 
-        # 2. 检索相关记忆
+        # 2. text
         results = self.manager.retrieve(
             query_vector=query_vector,
             top_k=top_k
@@ -481,19 +481,19 @@ class MemoryAugmentedQA:
 
         if not results:
             return {
-                "answer": "没有找到相关记忆。",
+                "answer": "text。",
                 "memories_used": 0,
                 "retrieval_results": []
             }
 
-        # 3. 准备上下文
+        # 3. text
         context = self.bridge.prepare_context(
             results,
             include_images=(self.mode == "vlm"),
             generate_descriptions=(self.mode == "text_convert")
         )
 
-        # 4. 生成答案
+        # 4. text
         if self.mode == "vlm":
             answer = self.bridge.query_vlm(question, context, system_prompt)
         else:

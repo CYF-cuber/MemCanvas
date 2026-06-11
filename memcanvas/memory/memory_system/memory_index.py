@@ -1,10 +1,10 @@
 """
-MemoryIndex - 记忆索引模块
+MemoryIndex - memory indextext
 
-提供基于向量的快速检索索引，支持：
-- 内存索引（NanoVectorDB风格）
-- FAISS索引（大规模）
-- 支持扩展到其他后端
+provides fast vector-based retrieval indexes，text：
+- in-memory index（NanoVectorDBtext）
+- FAISStext（large scale）
+- supports extension to other backends
 """
 
 from dataclasses import dataclass, field
@@ -17,26 +17,26 @@ from datetime import datetime
 
 @dataclass
 class IndexConfig:
-    """索引配置"""
-    # 索引类型: memory, faiss, hnswlib
+    """text"""
+    # text: memory, faiss, hnswlib
     index_type: str = "memory"
-    # 向量维度
+    # vector dimension
     vector_dim: int = 1024
-    # 相似度度量: cosine, l2, ip
+    # similarity metric: cosine, l2, ip
     metric: str = "cosine"
-    # 索引文件路径
+    # index file path
     index_path: Optional[str] = None
-    # HNSW参数
+    # HNSWtext
     hnsw_m: int = 16
     hnsw_ef_construction: int = 200
     hnsw_ef_search: int = 50
-    # 是否自动保存
+    # whether to auto-save
     auto_save: bool = True
 
 
 @dataclass
 class SearchResult:
-    """搜索结果"""
+    """search result"""
     memory_id: str
     score: float
     rank: int
@@ -44,45 +44,45 @@ class SearchResult:
 
 class MemoryIndex:
     """
-    记忆向量索引
+    memory vector index
 
-    支持多种索引后端：
-    1. memory: 内存中的简单向量索引（适合小规模）
-    2. faiss: Facebook的向量索引库（适合大规模）
-    3. hnswlib: 高性能近似最近邻索引
+    supports multiple index backends：
+    1. memory: simple in-memory vector index（suitable for small scale）
+    2. faiss: Facebooktextvectortext（textlarge scale）
+    3. hnswlib: high-performance approximate nearest-neighbor index
     """
 
     def __init__(self, config: Optional[IndexConfig] = None):
         self.config = config or IndexConfig()
 
-        # 内存存储
+        # text
         self._vectors: Dict[str, np.ndarray] = {}
         self._id_list: List[str] = []
 
-        # 外部索引（FAISS等）
+        # text（FAISStext）
         self._external_index = None
 
         self._init_index()
 
     def _init_index(self):
-        """初始化索引"""
+        """initialize index"""
         if self.config.index_type == "faiss":
             self._init_faiss()
         elif self.config.index_type == "hnswlib":
             self._init_hnswlib()
-        # memory类型不需要特殊初始化
+        # memorytextdoes not need special initialization
 
-        # 如果有持久化路径，尝试加载
+        # load if a persistence path is configured
         if self.config.index_path:
             self.load(self.config.index_path)
 
     def _init_faiss(self):
-        """初始化FAISS索引"""
+        """initialize FAISS index"""
         try:
             import faiss
 
             if self.config.metric == "cosine":
-                # 对于余弦相似度，先normalize再用内积
+                # for cosine similarity, normalize first and then use inner product
                 self._external_index = faiss.IndexFlatIP(self.config.vector_dim)
             elif self.config.metric == "l2":
                 self._external_index = faiss.IndexFlatL2(self.config.vector_dim)
@@ -94,7 +94,7 @@ class MemoryIndex:
             self.config.index_type = "memory"
 
     def _init_hnswlib(self):
-        """初始化HNSWlib索引"""
+        """initialize HNSWlib index"""
         try:
             import hnswlib
 
@@ -113,16 +113,16 @@ class MemoryIndex:
 
     def add(self, memory_id: str, vector: np.ndarray):
         """
-        添加向量到索引
+        add vector to index
 
         Args:
-            memory_id: 记忆ID
-            vector: 向量 [dim]
+            memory_id: memory ID
+            vector: vector [dim]
         """
         vector = np.asarray(vector, dtype=np.float32)
 
         if self.config.metric == "cosine":
-            # 归一化
+            # text
             norm = np.linalg.norm(vector)
             if norm > 0:
                 vector = vector / norm
@@ -147,9 +147,9 @@ class MemoryIndex:
 
     def remove(self, memory_id: str):
         """
-        从索引移除向量
+        textvector
 
-        注意：FAISS不支持删除，需要重建索引
+        text：FAISStext，textrebuild index
         """
         if memory_id in self._vectors:
             del self._vectors[memory_id]
@@ -157,12 +157,12 @@ class MemoryIndex:
         if memory_id in self._id_list:
             self._id_list.remove(memory_id)
 
-        # 对于FAISS，标记需要重建
+        # textFAISS，text
         if self.config.index_type == "faiss":
             self._rebuild_faiss()
 
     def _rebuild_faiss(self):
-        """重建FAISS索引"""
+        """textFAISStext"""
         if self.config.index_type != "faiss":
             return
 
@@ -178,15 +178,15 @@ class MemoryIndex:
         threshold: float = 0.0
     ) -> List[SearchResult]:
         """
-        搜索最相似的向量
+        textvector
 
         Args:
-            query_vector: 查询向量 [dim]
-            top_k: 返回数量
-            threshold: 相似度阈值
+            query_vector: textvector [dim]
+            top_k: text
+            threshold: text
 
         Returns:
-            SearchResult列表
+            SearchResulttext
         """
         if len(self._vectors) == 0:
             return []
@@ -213,7 +213,7 @@ class MemoryIndex:
         top_k: int,
         threshold: float
     ) -> List[SearchResult]:
-        """内存索引搜索"""
+        """in-memory indextext"""
         scores = []
 
         for memory_id, vector in self._vectors.items():
@@ -227,10 +227,10 @@ class MemoryIndex:
             if score >= threshold:
                 scores.append((memory_id, score))
 
-        # 排序
+        # text
         scores.sort(key=lambda x: x[1], reverse=True)
 
-        # 返回top_k
+        # texttop_k
         results = []
         for rank, (memory_id, score) in enumerate(scores[:top_k]):
             results.append(SearchResult(
@@ -247,7 +247,7 @@ class MemoryIndex:
         top_k: int,
         threshold: float
     ) -> List[SearchResult]:
-        """FAISS搜索"""
+        """FAISStext"""
         k = min(top_k, len(self._id_list))
         if k == 0:
             return []
@@ -263,7 +263,7 @@ class MemoryIndex:
 
             score = float(dist)
             if self.config.metric == "l2":
-                score = -score  # L2距离越小越好
+                score = -score  # L2text
 
             if score >= threshold:
                 results.append(SearchResult(
@@ -280,7 +280,7 @@ class MemoryIndex:
         top_k: int,
         threshold: float
     ) -> List[SearchResult]:
-        """HNSWlib搜索"""
+        """HNSWlibtext"""
         k = min(top_k, len(self._id_list))
         if k == 0:
             return []
@@ -294,7 +294,7 @@ class MemoryIndex:
             if idx >= len(self._id_list):
                 continue
 
-            # HNSWlib返回的是距离
+            # HNSWlibtext
             if self.config.metric == "cosine":
                 score = 1 - dist  # cosine distance -> similarity
             else:
@@ -310,26 +310,26 @@ class MemoryIndex:
         return results
 
     def get_vector(self, memory_id: str) -> Optional[np.ndarray]:
-        """获取记忆的向量"""
+        """textvector"""
         return self._vectors.get(memory_id)
 
     def save(self, path: str):
-        """保存索引到文件"""
+        """text"""
         path = Path(path)
         path.mkdir(parents=True, exist_ok=True)
 
-        # 保存向量
+        # textvector
         vectors_data = {
             mid: vec.tolist() for mid, vec in self._vectors.items()
         }
         with open(path / "vectors.json", 'w') as f:
             json.dump(vectors_data, f)
 
-        # 保存ID列表
+        # textIDtext
         with open(path / "ids.json", 'w') as f:
             json.dump(self._id_list, f)
 
-        # 保存配置
+        # text
         with open(path / "config.json", 'w') as f:
             json.dump({
                 "index_type": self.config.index_type,
@@ -339,7 +339,7 @@ class MemoryIndex:
                 "saved_at": datetime.now().isoformat()
             }, f, indent=2)
 
-        # 保存外部索引
+        # text
         if self.config.index_type == "faiss" and self._external_index:
             import faiss
             faiss.write_index(self._external_index, str(path / "faiss.index"))
@@ -348,12 +348,12 @@ class MemoryIndex:
             self._external_index.save_index(str(path / "hnsw.index"))
 
     def load(self, path: str):
-        """从文件加载索引"""
+        """textload index"""
         path = Path(path)
         if not path.exists():
             return
 
-        # 加载向量
+        # textvector
         vectors_path = path / "vectors.json"
         if vectors_path.exists():
             with open(vectors_path, 'r') as f:
@@ -363,13 +363,13 @@ class MemoryIndex:
                     for mid, vec in vectors_data.items()
                 }
 
-        # 加载ID列表
+        # textIDtext
         ids_path = path / "ids.json"
         if ids_path.exists():
             with open(ids_path, 'r') as f:
                 self._id_list = json.load(f)
 
-        # 加载外部索引
+        # text
         if self.config.index_type == "faiss":
             faiss_path = path / "faiss.index"
             if faiss_path.exists():

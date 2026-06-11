@@ -1,9 +1,9 @@
 """
-CanvasSlicer - 画布切分器
+CanvasSlicer - text
 
-实现类似DeepSeek-OCR的画布切分逻辑：
-1. 固定分辨率模式: 512/640/1024/1280 -> 64/100/256/400 vision tokens
-2. Gundam模式: n×640×640 patches + 1×1024×1024 global view
+textDeepSeek-OCRtext：
+1. text: 512/640/1024/1280 -> 64/100/256/400 vision tokens
+2. Gundamtext: n×640×640 patches + 1×1024×1024 global view
 """
 
 from dataclasses import dataclass, field
@@ -15,48 +15,48 @@ import math
 
 @dataclass
 class SliceConfig:
-    """切分配置"""
-    # 基础分辨率 (用于全局视图)
+    """text"""
+    # text (text)
     base_size: int = 1024
-    # patch分辨率
+    # patchtext
     patch_size: int = 640
-    # 是否启用crop模式 (Gundam模式)
+    # textcroptext (Gundamtext)
     crop_mode: bool = True
-    # vision encoder的patch大小 (用于计算token数)
+    # vision encodertextpatchtext (texttokentext)
     vision_patch_size: int = 64
-    # 最大patch数量
+    # textpatchtext
     max_patches: int = 16
-    # 重叠比例 (0-1)
+    # text (0-1)
     overlap_ratio: float = 0.0
 
 
 @dataclass
 class SliceResult:
-    """切分结果"""
-    # 全局视图 (base_size × base_size)
+    """text"""
+    # text (base_size × base_size)
     global_view: Image.Image
-    # 局部patches列表 (patch_size × patch_size each)
+    # textpatchestext (patch_size × patch_size each)
     patches: List[Image.Image]
-    # 每个patch的位置信息 (x, y, w, h) 在原图中的坐标
+    # textpatchtext (x, y, w, h) text
     patch_positions: List[Tuple[int, int, int, int]]
-    # 原始图像尺寸
+    # text
     original_size: Tuple[int, int]
-    # 预估的vision token数量
+    # textvision tokentext
     estimated_tokens: int
-    # 配置信息
+    # text
     config: SliceConfig
 
 
 class CanvasSlicer:
     """
-    画布切分器
+    text
 
-    支持两种模式:
-    1. 固定分辨率: 直接缩放到目标尺寸
-    2. Gundam模式: 切分为多个patches + 全局视图
+    text:
+    1. text: text
+    2. Gundamtext: textpatches + text
     """
 
-    # 预定义的分辨率模式及对应的vision token数
+    # textvision tokentext
     RESOLUTION_MODES = {
         "tiny": {"size": 512, "tokens": 64},
         "small": {"size": 640, "tokens": 100},
@@ -72,15 +72,15 @@ class CanvasSlicer:
         source: Union[str, Path, Image.Image]
     ) -> SliceResult:
         """
-        切分画布
+        text
 
         Args:
-            source: 图像路径或PIL Image
+            source: textPIL Image
 
         Returns:
-            SliceResult 包含全局视图和patches
+            SliceResult textpatches
         """
-        # 加载图像
+        # text
         if isinstance(source, (str, Path)):
             image = Image.open(source)
         else:
@@ -101,16 +101,16 @@ class CanvasSlicer:
         image: Image.Image,
         original_size: Tuple[int, int]
     ) -> SliceResult:
-        """固定分辨率模式"""
+        """text"""
         target_size = self.config.base_size
 
-        # 缩放到目标尺寸
+        # text
         global_view = image.resize(
             (target_size, target_size),
             Image.Resampling.LANCZOS
         )
 
-        # 计算token数
+        # texttokentext
         tokens = (target_size // self.config.vision_patch_size) ** 2
 
         return SliceResult(
@@ -128,19 +128,19 @@ class CanvasSlicer:
         original_size: Tuple[int, int]
     ) -> SliceResult:
         """
-        Gundam模式: n×patch_size patches + 1×base_size global
+        Gundamtext: n×patch_size patches + 1×base_size global
         """
         w, h = original_size
         patch_size = self.config.patch_size
         base_size = self.config.base_size
 
-        # 1. 创建全局视图
+        # 1. text
         global_view = self._create_global_view(image, base_size)
 
-        # 2. 计算需要多少patches
+        # 2. textpatches
         patches, positions = self._create_patches(image, patch_size)
 
-        # 3. 计算token数
+        # 3. texttokentext
         global_tokens = (base_size // self.config.vision_patch_size) ** 2
         patch_tokens = len(patches) * (patch_size // self.config.vision_patch_size) ** 2
         total_tokens = global_tokens + patch_tokens
@@ -159,18 +159,18 @@ class CanvasSlicer:
         image: Image.Image,
         target_size: int
     ) -> Image.Image:
-        """创建全局视图 (保持宽高比，填充白色)"""
+        """text (text，text)"""
         w, h = image.size
 
-        # 计算缩放比例
+        # text
         scale = min(target_size / w, target_size / h)
         new_w = int(w * scale)
         new_h = int(h * scale)
 
-        # 缩放
+        # text
         resized = image.resize((new_w, new_h), Image.Resampling.LANCZOS)
 
-        # 创建白色背景并居中放置
+        # text
         result = Image.new('RGB', (target_size, target_size), (255, 255, 255))
         paste_x = (target_size - new_w) // 2
         paste_y = (target_size - new_h) // 2
@@ -184,26 +184,26 @@ class CanvasSlicer:
         patch_size: int
     ) -> Tuple[List[Image.Image], List[Tuple[int, int, int, int]]]:
         """
-        将图像切分为patches
+        textpatches
 
-        使用滑动窗口方式，支持重叠
+        text，text
         """
         w, h = image.size
         patches = []
         positions = []
 
-        # 计算步长 (考虑重叠)
+        # text (text)
         stride = int(patch_size * (1 - self.config.overlap_ratio))
         stride = max(stride, 1)
 
-        # 计算需要多少行列
+        # text
         cols = max(1, math.ceil((w - patch_size) / stride) + 1) if w > patch_size else 1
         rows = max(1, math.ceil((h - patch_size) / stride) + 1) if h > patch_size else 1
 
-        # 限制最大patch数
+        # textpatchtext
         total_patches = cols * rows
         if total_patches > self.config.max_patches:
-            # 需要缩小图像或减少patches
+            # textpatches
             scale = math.sqrt(self.config.max_patches / total_patches)
             new_w = int(w * scale)
             new_h = int(h * scale)
@@ -214,11 +214,11 @@ class CanvasSlicer:
 
         for row in range(rows):
             for col in range(cols):
-                # 计算patch位置
+                # textpatchtext
                 x = min(col * stride, max(0, w - patch_size))
                 y = min(row * stride, max(0, h - patch_size))
 
-                # 提取patch
+                # textpatch
                 patch = self._extract_patch(image, x, y, patch_size)
                 patches.append(patch)
                 positions.append((x, y, patch_size, patch_size))
@@ -232,17 +232,17 @@ class CanvasSlicer:
         y: int,
         size: int
     ) -> Image.Image:
-        """提取单个patch，不足部分填充白色"""
+        """textpatch，text"""
         w, h = image.size
 
-        # 计算实际可提取的区域
+        # text
         actual_w = min(size, w - x)
         actual_h = min(size, h - y)
 
-        # 提取区域
+        # text
         crop = image.crop((x, y, x + actual_w, y + actual_h))
 
-        # 如果不足size，填充白色
+        # textsize，text
         if actual_w < size or actual_h < size:
             result = Image.new('RGB', (size, size), (255, 255, 255))
             result.paste(crop, (0, 0))
@@ -252,7 +252,7 @@ class CanvasSlicer:
 
     @classmethod
     def get_mode_config(cls, mode: str) -> SliceConfig:
-        """获取预定义模式的配置"""
+        """text"""
         if mode not in cls.RESOLUTION_MODES:
             raise ValueError(f"Unknown mode: {mode}. Available: {list(cls.RESOLUTION_MODES.keys())}")
 
@@ -265,14 +265,14 @@ class CanvasSlicer:
 
     @classmethod
     def estimate_tokens(cls, width: int, height: int, config: SliceConfig) -> int:
-        """预估给定尺寸图像的vision token数量"""
+        """textvision tokentext"""
         if not config.crop_mode:
             return (config.base_size // config.vision_patch_size) ** 2
 
-        # Gundam模式
+        # Gundamtext
         global_tokens = (config.base_size // config.vision_patch_size) ** 2
 
-        # 计算patches数量
+        # textpatchestext
         patch_size = config.patch_size
         stride = int(patch_size * (1 - config.overlap_ratio))
         cols = max(1, math.ceil((width - patch_size) / stride) + 1) if width > patch_size else 1

@@ -1,11 +1,11 @@
 """
-MemoryRetriever - 记忆检索模块
+MemoryRetriever - text
 
-提供多种检索模式：
-- 向量相似度检索
-- 时间范围检索
-- 元数据过滤检索
-- 混合检索
+text：
+- vectortext
+- text
+- text
+- text
 """
 
 from dataclasses import dataclass, field
@@ -22,43 +22,43 @@ from ...encoders.slicer.memory_token import MemoryToken
 
 @dataclass
 class RetrievalConfig:
-    """检索配置"""
-    # 默认返回数量
+    """text"""
+    # text
     default_top_k: int = 10
-    # 相似度阈值
+    # text
     similarity_threshold: float = 0.2
-    # 是否使用重排序
+    # text
     use_rerank: bool = False
-    # 重排序模型（如果使用）
+    # text（text）
     rerank_model: Optional[str] = None
-    # 时间衰减因子（0表示不使用）
+    # text（0text）
     time_decay_factor: float = 0.0
-    # 最大token预算
+    # texttokentext
     max_token_budget: int = 30000
 
 
 @dataclass
 class RetrievalResult:
-    """检索结果"""
+    """text"""
     memory_id: str
     memory: MemoryToken
     score: float
     rank: int
-    # 检索方式
+    # text
     retrieval_mode: str
-    # 额外信息
+    # text
     extra: Dict[str, Any] = field(default_factory=dict)
 
 
 class MemoryRetriever:
     """
-    记忆检索器
+    text
 
-    支持多种检索模式：
-    1. vector: 基于向量相似度
-    2. temporal: 基于时间范围
-    3. metadata: 基于元数据过滤
-    4. hybrid: 混合检索（向量 + 时间 + 元数据）
+    text：
+    1. vector: textvectortext
+    2. temporal: text
+    3. metadata: text
+    4. hybrid: text（vector + text + text）
     """
 
     def __init__(
@@ -81,18 +81,18 @@ class MemoryRetriever:
         category: Optional[str] = None
     ) -> List[RetrievalResult]:
         """
-        检索记忆
+        text
 
         Args:
-            query_vector: 查询向量（vector和hybrid模式需要）
-            top_k: 返回数量
-            mode: 检索模式
-            time_range: 时间范围 (start_datetime, end_datetime)
-            metadata_filter: 元数据过滤条件
-            category: 分类过滤
+            query_vector: textvector（vectortexthybridtext）
+            top_k: text
+            mode: text
+            time_range: text (start_datetime, end_datetime)
+            metadata_filter: text
+            category: categorytext
 
         Returns:
-            RetrievalResult列表
+            RetrievalResulttext
         """
         top_k = top_k or self.config.default_top_k
 
@@ -115,31 +115,31 @@ class MemoryRetriever:
         top_k: int,
         category: Optional[str] = None
     ) -> List[RetrievalResult]:
-        """向量相似度检索"""
+        """vectortext"""
         if query_vector is None:
             raise ValueError("query_vector is required for vector retrieval")
 
-        # 搜索索引
+        # text
         search_results = self.index.search(
             query_vector,
-            top_k=top_k * 2,  # 多检索一些，后面可能会过滤
+            top_k=top_k * 2,  # text，text
             threshold=self.config.similarity_threshold
         )
 
         results = []
         for sr in search_results:
-            # 分类过滤
+            # categorytext
             if category:
                 ids_in_category = set(self.store.list_ids(category))
                 if sr.memory_id not in ids_in_category:
                     continue
 
-            # 加载记忆
+            # text
             memory = self.store.load(sr.memory_id)
             if memory is None:
                 continue
 
-            # 应用时间衰减
+            # text
             score = sr.score
             if self.config.time_decay_factor > 0:
                 score = self._apply_time_decay(score, memory.meta.created_at)
@@ -163,7 +163,7 @@ class MemoryRetriever:
         top_k: int,
         category: Optional[str] = None
     ) -> List[RetrievalResult]:
-        """时间范围检索"""
+        """text"""
         start_time, end_time = None, None
         if time_range:
             start_time, end_time = time_range
@@ -171,7 +171,7 @@ class MemoryRetriever:
         results = []
         memory_ids = self.store.list_ids(category)
 
-        # 收集符合时间范围的记忆
+        # text
         candidates = []
         for mid in memory_ids:
             meta = self.store.get_meta(mid)
@@ -180,7 +180,7 @@ class MemoryRetriever:
 
             created_at = meta.created_at
 
-            # 时间范围过滤
+            # text
             if start_time and created_at < start_time:
                 continue
             if end_time and created_at > end_time:
@@ -188,17 +188,17 @@ class MemoryRetriever:
 
             candidates.append((mid, created_at))
 
-        # 按时间倒序排列（最新的在前）
+        # text（text）
         candidates.sort(key=lambda x: x[1], reverse=True)
 
-        # 加载记忆
+        # text
         for rank, (mid, created_at) in enumerate(candidates[:top_k]):
             memory = self.store.load(mid)
             if memory:
                 results.append(RetrievalResult(
                     memory_id=mid,
                     memory=memory,
-                    score=1.0,  # 时间检索没有相似度分数
+                    score=1.0,  # textsimilarity score
                     rank=rank,
                     retrieval_mode="temporal",
                     extra={"created_at": created_at.isoformat()}
@@ -212,7 +212,7 @@ class MemoryRetriever:
         top_k: int,
         category: Optional[str] = None
     ) -> List[RetrievalResult]:
-        """元数据过滤检索"""
+        """text"""
         if not metadata_filter:
             metadata_filter = {}
 
@@ -224,7 +224,7 @@ class MemoryRetriever:
             if meta is None:
                 continue
 
-            # 检查元数据匹配
+            # text
             if not self._match_metadata(meta, metadata_filter):
                 continue
 
@@ -251,14 +251,14 @@ class MemoryRetriever:
         top_k: int,
         category: Optional[str] = None
     ) -> List[RetrievalResult]:
-        """混合检索"""
-        # 首先按向量检索更多候选
+        """text"""
+        # textvectortext
         if query_vector is not None:
             candidates = self._retrieve_by_vector(
                 query_vector, top_k * 3, category
             )
         else:
-            # 如果没有向量，退化为时间检索
+            # textvector，text
             candidates = self._retrieve_by_time(
                 time_range, top_k * 3, category
             )
@@ -268,7 +268,7 @@ class MemoryRetriever:
             memory = candidate.memory
             meta = memory.meta
 
-            # 时间范围过滤
+            # text
             if time_range:
                 start_time, end_time = time_range
                 if start_time and meta.created_at < start_time:
@@ -276,7 +276,7 @@ class MemoryRetriever:
                 if end_time and meta.created_at > end_time:
                     continue
 
-            # 元数据过滤
+            # text
             if metadata_filter:
                 if not self._match_metadata(meta, metadata_filter):
                     continue
@@ -291,9 +291,9 @@ class MemoryRetriever:
         return results
 
     def _match_metadata(self, meta, filter_dict: Dict[str, Any]) -> bool:
-        """检查元数据是否匹配过滤条件"""
+        """text"""
         for key, value in filter_dict.items():
-            # 支持嵌套key，如 "extra.key"
+            # textkey，text "extra.key"
             if "." in key:
                 parts = key.split(".")
                 obj = meta
@@ -315,11 +315,11 @@ class MemoryRetriever:
         return True
 
     def _apply_time_decay(self, score: float, created_at: datetime) -> float:
-        """应用时间衰减"""
+        """text"""
         now = datetime.now()
         age_days = (now - created_at).days
 
-        # 指数衰减
+        # text
         decay = np.exp(-self.config.time_decay_factor * age_days)
         return score * decay
 
@@ -328,11 +328,11 @@ class MemoryRetriever:
         n: int = 10,
         category: Optional[str] = None
     ) -> List[RetrievalResult]:
-        """检索最近的N条记忆"""
+        """textNmemories"""
         return self._retrieve_by_time(None, n, category)
 
     def retrieve_by_ids(self, memory_ids: List[str]) -> List[RetrievalResult]:
-        """按ID列表检索"""
+        """textIDtext"""
         results = []
         for rank, mid in enumerate(memory_ids):
             memory = self.store.load(mid)
@@ -352,14 +352,14 @@ class MemoryRetriever:
         max_tokens: Optional[int] = None
     ) -> Dict[str, Any]:
         """
-        为LLM准备检索上下文
+        textLLMtext
 
         Args:
-            results: 检索结果
-            max_tokens: 最大token数
+            results: text
+            max_tokens: texttokentext
 
         Returns:
-            包含记忆信息的上下文字典
+            text
         """
         max_tokens = max_tokens or self.config.max_token_budget
 
@@ -371,7 +371,7 @@ class MemoryRetriever:
 
         estimated_tokens = 0
         for result in results:
-            # 估算token数（简单估算：1 token ≈ 4 characters）
+            # texttokentext（text：1 token ≈ 4 characters）
             memory_tokens = result.memory.tokens.shape[0]
             estimated_tokens += memory_tokens
 

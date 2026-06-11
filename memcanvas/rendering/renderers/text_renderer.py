@@ -1,7 +1,7 @@
 """
-TextRenderer - 文本渲染器
+TextRenderer - text
 
-将文本内容渲染为图像，支持多种样式和布局。
+text，text。
 """
 
 from dataclasses import dataclass
@@ -13,26 +13,26 @@ import os
 
 @dataclass
 class TextStyle:
-    """文本样式配置"""
-    font_path: Optional[str] = None  # 字体路径，None 使用默认
+    """text"""
+    font_path: Optional[str] = None  # text，None text
     font_size: int = 24
     font_color: Tuple[int, int, int, int] = (0, 0, 0, 255)
     background_color: Tuple[int, int, int, int] = (255, 255, 255, 255)
-    line_spacing: float = 1.4  # 行间距倍数
+    line_spacing: float = 1.4  # text
     padding: int = 20
-    max_chars_per_line: int = 80  # 每行最大字符数
+    max_chars_per_line: int = 80  # text
 
 
 class TextRenderer:
     """
-    文本渲染器
+    text
 
-    将纯文本或结构化文本渲染为图像。
+    text。
     """
 
-    # 尝试加载的字体列表（按优先级）
+    # text（text）
     FONT_CANDIDATES = [
-        # Linux 中文字体
+        # Linux text
         "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
         "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
         "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
@@ -43,7 +43,7 @@ class TextRenderer:
         # Windows
         "C:/Windows/Fonts/msyh.ttc",
         "C:/Windows/Fonts/simsun.ttc",
-        # 通用 monospace
+        # text monospace
         "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
         "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
     ]
@@ -53,15 +53,15 @@ class TextRenderer:
         self._font = self._load_font()
 
     def _load_font(self) -> ImageFont.FreeTypeFont:
-        """加载字体"""
-        # 如果指定了字体路径
+        """text"""
+        # text
         if self.style.font_path and os.path.exists(self.style.font_path):
             try:
                 return ImageFont.truetype(self.style.font_path, self.style.font_size)
             except Exception:
                 pass
 
-        # 尝试候选字体
+        # text
         for font_path in self.FONT_CANDIDATES:
             if os.path.exists(font_path):
                 try:
@@ -69,7 +69,7 @@ class TextRenderer:
                 except Exception:
                     continue
 
-        # 使用 PIL 默认字体
+        # text PIL text
         try:
             return ImageFont.truetype("DejaVuSans.ttf", self.style.font_size)
         except Exception:
@@ -83,26 +83,26 @@ class TextRenderer:
         auto_height: bool = True
     ) -> Image.Image:
         """
-        渲染文本为图像
+        text
 
         Args:
-            text: 要渲染的文本
-            width: 图像宽度（None 则自动计算）
-            height: 图像高度（None 且 auto_height=True 则自动计算）
-            auto_height: 是否自动计算高度
+            text: text
+            width: text（None text）
+            height: text（None text auto_height=True text）
+            auto_height: text
 
         Returns:
-            渲染后的 RGBA 图像
+            text RGBA text
         """
-        # 处理文本换行
+        # text
         lines = self._wrap_text(text, width)
 
-        # 计算尺寸
+        # text
         line_height = int(self.style.font_size * self.style.line_spacing)
         text_height = len(lines) * line_height
 
         if width is None:
-            # 计算最大行宽
+            # text
             max_width = 0
             for line in lines:
                 bbox = self._font.getbbox(line)
@@ -115,11 +115,11 @@ class TextRenderer:
 
         height = height or 200
 
-        # 创建图像
+        # text
         image = Image.new('RGBA', (width, height), self.style.background_color)
         draw = ImageDraw.Draw(image)
 
-        # 绘制文本
+        # text
         y = self.style.padding
         for line in lines:
             draw.text(
@@ -134,16 +134,16 @@ class TextRenderer:
 
     def _wrap_text(self, text: str, width: Optional[int] = None) -> List[str]:
         """
-        文本换行处理
+        text
 
         Args:
-            text: 原始文本
-            width: 目标宽度（用于计算每行字符数）
+            text: text
+            width: text（text）
 
         Returns:
-            换行后的文本行列表
+            text
         """
-        # 先按原有换行符分割
+        # text
         paragraphs = text.split('\n')
 
         lines = []
@@ -152,17 +152,17 @@ class TextRenderer:
                 lines.append('')
                 continue
 
-            # 根据宽度计算每行字符数
+            # text
             if width:
-                # 估算每个字符的平均宽度
-                test_char = "中"  # 用中文字符估算（较宽）
+                # text
+                test_char = "text"  # text（text）
                 bbox = self._font.getbbox(test_char)
                 char_width = (bbox[2] - bbox[0]) if bbox else self.style.font_size
                 chars_per_line = max(10, (width - 2 * self.style.padding) // char_width)
             else:
                 chars_per_line = self.style.max_chars_per_line
 
-            # 使用 textwrap 处理
+            # text textwrap text
             wrapped = textwrap.wrap(para, width=chars_per_line)
             lines.extend(wrapped if wrapped else [''])
 
@@ -174,38 +174,38 @@ class TextRenderer:
         width: int = 800
     ) -> Image.Image:
         """
-        渲染 Markdown 文本（简化版）
+        text Markdown text（text）
 
-        目前只处理基本格式，复杂 Markdown 建议用专门的库渲染后截图。
+        text，text Markdown text。
         """
-        # 简单处理：移除 Markdown 标记
+        # text：text Markdown text
         import re
 
         text = markdown_text
-        # 移除代码块标记
-        text = re.sub(r'```[\s\S]*?```', '[代码块]', text)
-        # 移除行内代码
+        # text
+        text = re.sub(r'```[\s\S]*?```', '[text]', text)
+        # text
         text = re.sub(r'`([^`]+)`', r'\1', text)
-        # 移除加粗/斜体
+        # text/text
         text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)
         text = re.sub(r'\*([^*]+)\*', r'\1', text)
-        # 移除链接，保留文字
+        # text，text
         text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
-        # 移除标题标记
+        # text
         text = re.sub(r'^#{1,6}\s+', '', text, flags=re.MULTILINE)
 
         return self.render(text, width=width)
 
     def estimate_height(self, text: str, width: int) -> int:
         """
-        估算渲染所需高度
+        text
 
         Args:
-            text: 要渲染的文本
-            width: 目标宽度
+            text: text
+            width: text
 
         Returns:
-            估算的高度（像素）
+            text（text）
         """
         lines = self._wrap_text(text, width)
         line_height = int(self.style.font_size * self.style.line_spacing)

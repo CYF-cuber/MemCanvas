@@ -1,7 +1,7 @@
 """
-Renderers - 各模态渲染器
+Renderers - text
 
-将不同模态的数据渲染为图像，用于放入 MemoryCanvas。
+text，text MemoryCanvas。
 """
 
 from .text_renderer import TextRenderer, TextStyle

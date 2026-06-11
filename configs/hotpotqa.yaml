@@ -1,0 +1,5 @@
+dataset: hotpotqa
+input: ./data/hotpotqa/train.jsonl
+canvas_dir: ./outputs/hotpotqa/canvases
+embedding_dir: ./outputs/hotpotqa/embeddings
+metrics: [exact_match, f1]

@@ -1,7 +1,7 @@
 """
-AudioRenderer - 音频渲染器
+AudioRenderer - text
 
-将音频数据转换为频谱图（spectrogram）图像。
+text（spectrogram）text。
 """
 
 from dataclasses import dataclass
@@ -10,7 +10,7 @@ from PIL import Image
 from pathlib import Path
 import numpy as np
 
-# 可选依赖
+# text
 try:
     import librosa
     import librosa.display
@@ -20,7 +20,7 @@ except ImportError:
 
 try:
     import matplotlib
-    matplotlib.use('Agg')  # 非交互式后端
+    matplotlib.use('Agg')  # text
     import matplotlib.pyplot as plt
     MATPLOTLIB_AVAILABLE = True
 except ImportError:
@@ -29,11 +29,11 @@ except ImportError:
 
 @dataclass
 class AudioStyle:
-    """音频渲染样式配置"""
+    """text"""
     spectrogram_type: str = "mel"  # mel, stft, cqt
-    n_mels: int = 128  # mel 频带数
-    n_fft: int = 2048  # FFT 窗口大小
-    hop_length: int = 512  # 帧移
+    n_mels: int = 128  # mel text
+    n_fft: int = 2048  # FFT text
+    hop_length: int = 512  # text
     colormap: str = "magma"  # matplotlib colormap
     background_color: Tuple[int, int, int, int] = (255, 255, 255, 255)
     show_colorbar: bool = False
@@ -43,21 +43,21 @@ class AudioStyle:
 
 class AudioRenderer:
     """
-    音频渲染器
+    text
 
-    将音频文件或数据转换为频谱图图像。
+    text。
     """
 
     def __init__(self, style: Optional[AudioStyle] = None):
         self.style = style or AudioStyle()
 
         if not LIBROSA_AVAILABLE:
-            print("警告: librosa 未安装，音频渲染功能将受限")
-            print("请运行: pip install librosa")
+            print("text: librosa text，text")
+            print("text: pip install librosa")
 
         if not MATPLOTLIB_AVAILABLE:
-            print("警告: matplotlib 未安装，频谱图渲染功能将受限")
-            print("请运行: pip install matplotlib")
+            print("text: matplotlib text，text")
+            print("text: pip install matplotlib")
 
     def render(
         self,
@@ -67,29 +67,29 @@ class AudioRenderer:
         sr: Optional[int] = None
     ) -> Image.Image:
         """
-        渲染音频为频谱图
+        text
 
         Args:
-            source: 音频文件路径或 numpy 数组
-            target_width: 目标宽度
-            target_height: 目标高度
-            sr: 采样率（仅当 source 为 numpy 数组时需要）
+            source: text numpy text
+            target_width: text
+            target_height: text
+            sr: text（text source text numpy text）
 
         Returns:
-            频谱图 RGBA 图像
+            text RGBA text
         """
         if not LIBROSA_AVAILABLE or not MATPLOTLIB_AVAILABLE:
-            return self._render_placeholder(target_width, target_height, "需要安装 librosa 和 matplotlib")
+            return self._render_placeholder(target_width, target_height, "text librosa text matplotlib")
 
-        # 加载音频
+        # text
         if isinstance(source, (str, Path)):
             y, sr = librosa.load(str(source), sr=sr)
         else:
             y = source
             if sr is None:
-                sr = 22050  # 默认采样率
+                sr = 22050  # text
 
-        # 计算频谱图
+        # text
         if self.style.spectrogram_type == "mel":
             S = librosa.feature.melspectrogram(
                 y=y,
@@ -106,9 +106,9 @@ class AudioRenderer:
             S = np.abs(librosa.cqt(y, sr=sr, hop_length=self.style.hop_length))
             S_db = librosa.amplitude_to_db(S, ref=np.max)
         else:
-            raise ValueError(f"未知的频谱图类型: {self.style.spectrogram_type}")
+            raise ValueError(f"text: {self.style.spectrogram_type}")
 
-        # 使用 matplotlib 渲染
+        # text matplotlib text
         return self._render_with_matplotlib(S_db, sr, target_width, target_height)
 
     def _render_with_matplotlib(
@@ -118,15 +118,15 @@ class AudioRenderer:
         width: int,
         height: int
     ) -> Image.Image:
-        """使用 matplotlib 渲染频谱图"""
-        # 计算 figure 尺寸（英寸）
+        """text matplotlib text"""
+        # text figure text（text）
         dpi = 100
         fig_width = width / dpi
         fig_height = height / dpi
 
         fig, ax = plt.subplots(figsize=(fig_width, fig_height), dpi=dpi)
 
-        # 绘制频谱图
+        # text
         img = librosa.display.specshow(
             S_db,
             sr=sr,
@@ -148,23 +148,23 @@ class AudioRenderer:
 
         plt.tight_layout()
 
-        # 转换为 PIL Image (兼容新版 matplotlib)
+        # text PIL Image (text matplotlib)
         fig.canvas.draw()
 
-        # 使用 buffer_rgba() 方法（新版 matplotlib）
+        # text buffer_rgba() text（text matplotlib）
         try:
             buf = fig.canvas.buffer_rgba()
             data = np.asarray(buf)
             image = Image.fromarray(data, mode='RGBA')
         except AttributeError:
-            # 回退到旧版方法
+            # text
             data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
             data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
             image = Image.fromarray(data, mode='RGB').convert('RGBA')
 
         plt.close(fig)
 
-        # 调整到目标尺寸
+        # text
         if image.size != (width, height):
             image = image.resize((width, height), Image.Resampling.LANCZOS)
 
@@ -176,22 +176,22 @@ class AudioRenderer:
         height: int,
         message: str
     ) -> Image.Image:
-        """渲染占位图像"""
+        """text"""
         from PIL import ImageDraw, ImageFont
 
         image = Image.new('RGBA', (width, height), self.style.background_color)
         draw = ImageDraw.Draw(image)
 
-        # 绘制边框
+        # text
         draw.rectangle([0, 0, width - 1, height - 1], outline=(200, 200, 200, 255))
 
-        # 绘制文字
+        # text
         try:
             font = ImageFont.load_default()
         except Exception:
             font = None
 
-        text = f"[音频频谱图]\n{message}"
+        text = f"[text]\n{message}"
         bbox = draw.textbbox((0, 0), text, font=font)
         text_width = bbox[2] - bbox[0]
         text_height = bbox[3] - bbox[1]
@@ -212,22 +212,22 @@ class AudioRenderer:
         color: str = "#1f77b4"
     ) -> Image.Image:
         """
-        渲染波形图
+        text
 
         Args:
-            source: 音频源
-            target_width: 目标宽度
-            target_height: 目标高度
-            sr: 采样率
-            color: 波形颜色
+            source: text
+            target_width: text
+            target_height: text
+            sr: text
+            color: text
 
         Returns:
-            波形图 RGBA 图像
+            text RGBA text
         """
         if not LIBROSA_AVAILABLE or not MATPLOTLIB_AVAILABLE:
-            return self._render_placeholder(target_width, target_height, "需要安装 librosa 和 matplotlib")
+            return self._render_placeholder(target_width, target_height, "text librosa text matplotlib")
 
-        # 加载音频
+        # text
         if isinstance(source, (str, Path)):
             y, sr = librosa.load(str(source), sr=sr)
         else:
@@ -235,14 +235,14 @@ class AudioRenderer:
             if sr is None:
                 sr = 22050
 
-        # 计算 figure 尺寸
+        # text figure text
         dpi = 100
         fig_width = target_width / dpi
         fig_height = target_height / dpi
 
         fig, ax = plt.subplots(figsize=(fig_width, fig_height), dpi=dpi)
 
-        # 绘制波形
+        # text
         librosa.display.waveshow(y, sr=sr, ax=ax, color=color)
 
         ax.set_xlabel('Time (s)')
@@ -250,7 +250,7 @@ class AudioRenderer:
 
         plt.tight_layout()
 
-        # 转换为 PIL Image (兼容新版 matplotlib)
+        # text PIL Image (text matplotlib)
         fig.canvas.draw()
 
         try:
@@ -271,16 +271,16 @@ class AudioRenderer:
 
     def get_audio_info(self, source: Union[str, Path]) -> dict:
         """
-        获取音频信息
+        text
 
         Args:
-            source: 音频文件路径
+            source: text
 
         Returns:
-            包含时长、采样率等信息的字典
+            text、text
         """
         if not LIBROSA_AVAILABLE:
-            return {"error": "librosa 未安装"}
+            return {"error": "librosa text"}
 
         y, sr = librosa.load(str(source), sr=None)
         duration = librosa.get_duration(y=y, sr=sr)

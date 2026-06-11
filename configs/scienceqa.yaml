@@ -1,0 +1,6 @@
+dataset: scienceqa
+input: ./data/scienceqa/train.jsonl
+image_root: ./data/scienceqa/images
+canvas_dir: ./outputs/scienceqa/canvases
+embedding_dir: ./outputs/scienceqa/embeddings
+metrics: accuracy

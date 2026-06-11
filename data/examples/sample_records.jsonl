@@ -1,0 +1,1 @@
+{"dataset":"demo","split":"train","index":0,"question":"Which object is on the table?","choices":["cup","book","lamp"],"answer":"A","context":"A small cup is placed on the wooden table.","table":[["object","location"],["cup","table"]]}

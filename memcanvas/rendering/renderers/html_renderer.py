@@ -1,10 +1,10 @@
 """
-HtmlRenderer - HTML/Markdown 渲染器
+HtmlRenderer - HTML/Markdown text
 
-使用 Playwright 将 Markdown/HTML 渲染为高质量 PIL Image。
-基于 MemOCR 的 Playwright 方案，调整为更紧凑排版。
+text Playwright text Markdown/HTML textquality PIL Image。
+text MemOCR text Playwright text，text。
 
-Playwright 为可选依赖，导入失败时给出明确提示。
+Playwright text，text。
 """
 
 from dataclasses import dataclass, field
@@ -21,7 +21,7 @@ except ImportError:
 
 @dataclass
 class HtmlStyle:
-    """HTML 渲染样式配置"""
+    """HTML text"""
     viewport_width: int = 600
     font_size_px: int = 14
     font_family: str = (
@@ -114,10 +114,10 @@ hr {{
 
 class HtmlRenderer:
     """
-    HTML/Markdown 渲染器
+    HTML/Markdown text
 
-    使用 Playwright 将 Markdown 或 HTML 渲染为 PIL Image。
-    内部维护单例 browser 实例以避免重复启动。
+    text Playwright text Markdown text HTML text PIL Image。
+    text browser text。
 
     Usage:
         renderer = HtmlRenderer()
@@ -137,7 +137,7 @@ class HtmlRenderer:
         self.style = style or HtmlStyle()
 
     def _ensure_browser(self):
-        """确保 browser 已启动（单例）"""
+        """text browser text（text）"""
         if HtmlRenderer._instance_browser is None:
             HtmlRenderer._instance_pw = sync_playwright().start()
             HtmlRenderer._instance_browser = HtmlRenderer._instance_pw.chromium.launch(
@@ -146,7 +146,7 @@ class HtmlRenderer:
             )
 
     def _build_html(self, content: str, content_type: str = "markdown") -> str:
-        """将 content 转换为完整 HTML 页面"""
+        """text content text HTML text"""
         if content_type == "markdown":
             import markdown
             html_content = markdown.markdown(
@@ -171,11 +171,11 @@ class HtmlRenderer:
 
     def render(self, content: str, content_type: str = "markdown") -> Image.Image:
         """
-        渲染内容为 PIL Image
+        text PIL Image
 
         Args:
-            content: Markdown、HTML 或纯文本
-            content_type: "markdown", "html", 或 "text"
+            content: Markdown、HTML text
+            content_type: "markdown", "html", text "text"
 
         Returns:
             PIL Image (RGB)
@@ -221,15 +221,15 @@ class HtmlRenderer:
         patch_height: int = 580,
     ) -> List[Image.Image]:
         """
-        渲染内容，超高时自动分页
+        text，text
 
         Args:
-            content: 要渲染的内容
-            content_type: "markdown", "html", 或 "text"
-            patch_height: 每个 patch 的最大高度
+            content: text
+            content_type: "markdown", "html", text "text"
+            patch_height: text patch text
 
         Returns:
-            PIL Image 列表（每个不超过 patch_height 高度）
+            PIL Image text（text patch_height text）
         """
         full_img = self.render(content, content_type)
         w, h = full_img.size
@@ -248,7 +248,7 @@ class HtmlRenderer:
         return patches
 
     def close(self):
-        """关闭 browser（释放资源）"""
+        """text browser（text）"""
         if HtmlRenderer._instance_browser is not None:
             try:
                 HtmlRenderer._instance_browser.close()

@@ -22,11 +22,11 @@ from ..rendering.smart_canvas_layout import BlockType, Layout
 def extract_geometric_features(layout: Layout) -> List[float]:
     """Extract 8-dim geometric features from a Layout object."""
     return [
-        layout.squareness,                                      # 方形度 [0,1]
-        layout.utilization,                                     # 利用率 [0,1]
-        layout.width / 1000.0,                                  # 归一化宽度
-        layout.height / 1000.0,                                 # 归一化高度
-        layout.aspect_ratio,                                    # 宽高比
+        layout.squareness,                                      # text [0,1]
+        layout.utilization,                                     # text [0,1]
+        layout.width / 1000.0,                                  # text
+        layout.height / 1000.0,                                 # text
+        layout.aspect_ratio,                                    # text
         (layout.width // 28) * (layout.height // 28) / 2000.0,  # vision token count (normalized)
         len(layout.placements) / 10.0,                          # block count (normalized)
         1.0 if 400 <= layout.width <= 900 and
